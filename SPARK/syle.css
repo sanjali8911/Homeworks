@@ -1,0 +1,31 @@
+.cont{
+    border: 4px solid black;
+    width: 300px;
+    padding: 10px;
+}
+.box{
+    width: 100px;
+    height: 100px;
+    padding: 10px;
+    background-color: blue;
+    margin-bottom: 20px;
+    position: relative;
+}
+.static-box{
+    
+    position: static; /* ye page ke hisaab se/*
+   top: 400px;
+
+}
+.relative-box {
+    position: relative; /*apne position ke hisaab se */
+top: 290px;
+
+    background-color: red;
+}
+.absolute-box {
+ position: absolute; /*  ye jyga papa ke hisaab se */
+left: 1000px;
+top: 100px;
+
+}

@@ -1,0 +1,48 @@
+.hero{
+   font-family: "Comic Sans MS", "Bradley Hand", "Chalkboard SE", cursive;
+text-align: center;
+}
+.parent{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    border: 2px solid black;
+    height: 100vh;
+    font-size: large;
+}
+.child{
+border: 2px solid rgb(61, 186, 145);
+display: flex;
+justify-content: center;
+align-items: top;
+color: aliceblue;
+font-size: 80;
+}
+.d1, .d5{
+    grid-column: 1/6;
+    height: 10vh;
+   
+}
+.d2, .d3, .d4{
+    height: 80vh;
+}
+.d3{
+    grid-column: 2/5;
+    background: url("https://i.pinimg.com/736x/03/a1/aa/03a1aa91f631fd4d364aa50d23ac7a43.jpg") center/cover no-repeat;
+}
+.d2{
+    background: url("https://i.pinimg.com/736x/cd/7f/fd/cd7ffde660bd07d723f8282acfe13555.jpg") center/cover no-repeat ;
+}
+
+.d4{
+    background: url("https://i.pinimg.com/564x/fe/1c/71/fe1c7189a8e559b53d8eff49c3d9cd10.jpg") center/cover no-repeat ;
+}
+.d5, .d1{
+background: url("clans.png");
+
+
+
+
+}
+
+
+

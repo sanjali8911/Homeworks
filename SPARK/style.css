@@ -1,0 +1,20 @@
+*{
+    margin: 0px;
+    padding: 0px;
+}
+.box{
+    background-color: aqua;
+    margin: 10px 20px 30px 40px;
+    padding: 20px;
+    border: 30px solid red;
+    height: 200px;
+    width: 500px;
+    box-sizing: border-box;
+}
+/* <!--top left bottom right--> */
+.no {
+    background-color: aquamarine;
+    margin:30px;
+}
+
+

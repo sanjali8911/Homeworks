@@ -1,0 +1,26 @@
+.cont{
+    border:2px dashed  #ff00ff;
+
+   display: flex;
+    height: 800px;
+    width: 300px;
+    flex-wrap: wrap;
+    flex-direction: column;
+     justify-content: center;
+}
+
+
+.child{
+    height: 50px;
+    width: 50px; 
+    padding: 20px;
+    background-color: red;
+    border: 2px solid black;
+    margin: 2px;
+}
+.dabba{
+    grid-column: 2/4;
+}
+.dabba1{
+    grid-column: 1/3;
+}
