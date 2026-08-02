@@ -1,0 +1,21 @@
+.parent{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 2px solid black;
+    border-radius: 8px;
+    height: 80vh;
+    margin: 20px;
+}
+.child{
+    border: 2px solid black;
+    margin: 20px;
+}
+.hero{
+    text-align: center;
+font-family: "Comic Sans MS", "Comic Sans", cursive;
+}
+.totka{
+    height: 20vh;
+    display: flex;
+  justify-content: center;
+}

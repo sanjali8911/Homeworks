@@ -1,0 +1,44 @@
+*{margin: 0px;
+padding: 0px}
+.cont{ border: 10px solid white;
+   padding: 0px;
+   margin: 0px;
+   position: relative;
+   height: 150px;
+}
+.wee{  /* margin-top: 10px;
+    margin-left: 20px; */
+    margin: 10px 20px;
+    font-size: 24px;
+    font-weight: bold;}
+    .yoa, .yob, .yoc {
+        width: 80px;
+    height: 130px;
+    background-color: gray;
+    text-align: center;
+    font-size: 80px;
+    }
+.yoa{  position: absolute;
+   top: 0px;
+   left: 0px;}
+.yob{ position: absolute;
+   top: 0px; left: 90px;}
+.yoc{ position: absolute;
+top: 0px; left: 180px;}
+.wow{
+    border: 1px solid black;
+    position: relative;
+    margin: 10px 20px;
+}
+.wola{ color: grey;
+padding: 2px;}
+.button{
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    text-align: center;
+    padding: 2px;
+   
+    background-color: rgba(21, 154, 212, 0.788);
+}
+
