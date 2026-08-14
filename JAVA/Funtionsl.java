@@ -14,9 +14,9 @@ public class Funtionsl {
 //  System.out.print("The factorial of the given int is :");
 //   printFac(n);
 // }
-public static long factorialme(int a) {
+public static long factorialme(int b) {
     long mumu = 1;
-    for(int i=1; i<=a; i++) {
+    for(int i=1; i<=b; i++) {
         mumu= mumu*i;
     }
     return mumu;
