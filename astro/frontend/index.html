@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstroTrace // Satellite Orbit Monitoring & Anomaly Detection</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Three.js & Chart.js via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="theme-space">
+
+  <!-- TOP HEADER / MISSION BAR -->
+  <header class="mission-header" id="missionHeader">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <i class="fa-solid fa-satellite fa-spin-pulse" style="--fa-animation-duration: 12s;"></i>
+      </div>
+      <div class="brand-title">
+        <h1>ASTRO<span>TRACE</span></h1>
+        <span class="brand-sub">ORBITAL DYNAMICS & ANOMALY DETECTOR</span>
+      </div>
+    </div>
+
+    <!-- Center Status Ticker -->
+    <div class="header-ticker">
+      <div class="ticker-item">
+        <span class="ticker-label">PROPAGATOR</span>
+        <span class="ticker-val" id="tickerPropagator">SGP4 + RK4 (J2+Drag)</span>
+      </div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">
+        <span class="ticker-label">ACTIVE FLEET</span>
+        <span class="ticker-val" id="tickerFleetCount">8 Satellites</span>
+      </div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">
+        <span class="ticker-label">NETWORK STREAM</span>
+        <span class="ticker-val live-pill" id="tickerStreamStatus">
+          <span class="pulse-dot"></span> LIVE 2Hz
+        </span>
+      </div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">
+        <span class="ticker-label">UTC CLOCK</span>
+        <span class="ticker-val mono" id="utcClock">00:00:00 UTC</span>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btnRefreshTLE" title="Sync TLEs from CelesTrak">
+        <i class="fa-solid fa-rotate"></i> Sync TLEs
+      </button>
+      <button class="btn btn-primary" id="btnInspectAnomaly" title="Open Forensic Diagnostic Inspector">
+        <i class="fa-solid fa-microscope"></i> What Happened?
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN MISSION CONTROL WORKSPACE -->
+  <main class="mission-workspace">
+
+    <!-- LEFT PANEL: FLEET EXPLORER -->
+    <aside class="panel fleet-panel" id="fleetPanel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>FLEET DIRECTORY</span>
+        </div>
+        <span class="badge" id="fleetCountBadge">8 SAT</span>
+      </div>
+
+      <!-- Search & Category Filters -->
+      <div class="fleet-search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="satSearchInput" placeholder="Search satellite or NORAD..." />
+      </div>
+
+      <div class="fleet-tabs">
+        <button class="tab-btn active" data-filter="ALL">ALL</button>
+        <button class="tab-btn" data-filter="LEO">LEO</button>
+        <button class="tab-btn" data-filter="MEO">MEO</button>
+        <button class="tab-btn" data-filter="GEO">GEO</button>
+        <button class="tab-btn" data-filter="SSO">SSO</button>
+      </div>
+
+      <!-- Satellite List -->
+      <div class="sat-list" id="satList">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Quick Summary Stats -->
+      <div class="fleet-footer-stats">
+        <div class="stat-pill normal">
+          <span class="stat-num" id="normalCount">8</span> NOMINAL
+        </div>
+        <div class="stat-pill watch">
+          <span class="stat-num" id="watchCount">0</span> WATCH
+        </div>
+        <div class="stat-pill alert">
+          <span class="stat-num" id="anomalyCount">0</span> ANOMALY
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER 3D VIEWPORT -->
+    <section class="viewport-section" id="viewportSection">
+      <div id="globeContainer" class="globe-container"></div>
+
+      <!-- 3D Viewport HUD Overlays -->
+      <div class="viewport-hud-top">
+        <div class="sat-badge-hud" id="hudSatHeader">
+          <div class="hud-sat-color-bar" id="hudColorBar"></div>
+          <div>
+            <div class="hud-sat-name" id="hudSatName">ISS (ZARYA)</div>
+            <div class="hud-sat-meta">
+              <span id="hudSatCategory">Space Station</span> • 
+              <span id="hudSatOrbitType">LEO (418 km)</span> • 
+              NORAD <span id="hudNoradId">25544</span>
+            </div>
+          </div>
+          <div class="hud-status-badge badge-normal" id="hudStatusBadge">
+            <span class="status-indicator"></span>
+            <span id="hudStatusText">NOMINAL</span>
+          </div>
+        </div>
+
+        <!-- Camera Control Bar -->
+        <div class="cam-controls">
+          <button class="cam-btn active" data-cam="orbit" title="Free Orbit View">
+            <i class="fa-solid fa-globe"></i> Orbit
+          </button>
+          <button class="cam-btn" data-cam="chase" title="Satellite Chase View">
+            <i class="fa-solid fa-crosshairs"></i> Chase
+          </button>
+          <button class="cam-btn" data-cam="topdown" title="Sub-Satellite Nadir View">
+            <i class="fa-solid fa-eye"></i> Nadir
+          </button>
+          <button class="cam-btn" id="btnResetView" title="Reset Camera Orientation">
+            <i class="fa-solid fa-compass"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Layer Toggles HUD (Bottom Left of Viewport) -->
+      <div class="viewport-hud-layers">
+        <label class="toggle-control" title="Toggle Actual Orbit Ribbon">
+          <input type="checkbox" id="chkShowActualOrbit" checked>
+          <span class="toggle-label"><i class="fa-solid fa-circle" style="color: #00f2ff;"></i> Actual Orbit</span>
+        </label>
+        <label class="toggle-control" title="Toggle Predicted Numerical Orbit Path">
+          <input type="checkbox" id="chkShowPredOrbit" checked>
+          <span class="toggle-label"><i class="fa-solid fa-circle" style="color: #ffaa00;"></i> Predicted Path</span>
+        </label>
+        <label class="toggle-control" title="Toggle Ground Track & Footprint">
+          <input type="checkbox" id="chkShowGroundTrack" checked>
+          <span class="toggle-label"><i class="fa-solid fa-route" style="color: #9d4edd;"></i> Ground Track</span>
+        </label>
+        <label class="toggle-control" title="Toggle Scenario Deviated Orbit (shown in red)">
+          <input type="checkbox" id="chkShowDeviatedOrbit" checked>
+          <span class="toggle-label"><i class="fa-solid fa-circle" style="color: #ff1744;"></i> Deviated Orbit</span>
+        </label>
+        <label class="toggle-control" title="Toggle Earth Atmosphere Glow">
+          <input type="checkbox" id="chkShowAtmosphere" checked>
+          <span class="toggle-label"><i class="fa-solid fa-cloud"></i> Atmosphere</span>
+        </label>
+      </div>
+
+      <!-- Simulation Scenario Injection Bar (Floating at viewport bottom) -->
+      <div class="scenario-simulator-bar">
+        <div class="scenario-label">
+          <i class="fa-solid fa-vial-circle-check"></i>
+          <span>SCENARIO INJECTOR:</span>
+        </div>
+        <div class="scenario-buttons">
+          <button class="scenario-btn" data-scenario="ORBIT_RAISE_MANEUVER" title="Simulate posigrade burn raising altitude">
+            <i class="fa-solid fa-rocket"></i> Orbit Raise (+12 m/s)
+          </button>
+          <button class="scenario-btn" data-scenario="ATMOSPHERIC_DRAG_SPIKE" title="Simulate solar flare atmospheric expansion drag">
+            <i class="fa-solid fa-wind"></i> Solar Storm Drag
+          </button>
+          <button class="scenario-btn" data-scenario="INCLINATION_PLANE_CHANGE" title="Simulate cross-track plane tilt maneuver">
+            <i class="fa-solid fa-arrows-split-up-and-left"></i> Plane Change
+          </button>
+          <button class="scenario-btn" data-scenario="DEORBIT_BURN" title="Simulate retrograde burn lowering orbit">
+            <i class="fa-solid fa-arrow-down-wide-short"></i> De-orbit Burn
+          </button>
+          <button class="scenario-btn" data-scenario="SENSOR_EPHEMERIS_UPDATE" title="Simulate ground station tracking update">
+            <i class="fa-solid fa-satellite-dish"></i> Sensor Shift
+          </button>
+          <button class="scenario-btn reset-btn" data-scenario="RESET_NOMINAL" title="Clear simulated deviations">
+            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Nominal
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: TELEMETRY & ERROR METRICS -->
+    <aside class="panel telemetry-panel" id="telemetryPanel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>REAL-TIME TELEMETRY</span>
+        </div>
+        <span class="status-chip chip-live" id="telemetryRateChip">100 ms</span>
+      </div>
+
+      <!-- Key Telemetry Metrics Grid -->
+      <div class="telemetry-grid">
+        <div class="metric-card">
+          <span class="metric-label">ALTITUDE</span>
+          <div class="metric-value-wrap">
+            <span class="metric-val mono" id="telAltitude">418.4</span>
+            <span class="metric-unit">km</span>
+          </div>
+          <div class="metric-sub" id="telAltRange">Apogee 422 km • Perigee 414 km</div>
+        </div>
+
+        <div class="metric-card">
+          <span class="metric-label">ORBITAL VELOCITY</span>
+          <div class="metric-value-wrap">
+            <span class="metric-val mono" id="telVelocity">7.662</span>
+            <span class="metric-unit">km/s</span>
+          </div>
+          <div class="metric-sub" id="telGroundSpeed">Ground Speed 7.42 km/s</div>
+        </div>
+
+        <div class="metric-card">
+          <span class="metric-label">LATITUDE</span>
+          <div class="metric-value-wrap">
+            <span class="metric-val mono" id="telLatitude">24.512° N</span>
+          </div>
+          <div class="metric-sub" id="telSubsolar">Nadir Sub-Satellite Point</div>
+        </div>
+
+        <div class="metric-card">
+          <span class="metric-label">LONGITUDE</span>
+          <div class="metric-value-wrap">
+            <span class="metric-val mono" id="telLongitude">82.145° E</span>
+          </div>
+          <div class="metric-sub" id="telFootprint">Footprint Radius ~2,250 km</div>
+        </div>
+      </div>
+
+      <!-- DEVIATION & ANOMALY ANALYSIS CARD -->
+      <div class="deviation-box" id="deviationBox">
+        <div class="deviation-header">
+          <div class="dev-title-wrap">
+            <i class="fa-solid fa-triangle-exclamation" id="devIcon"></i>
+            <span class="dev-title">DEVIATION ANALYSIS</span>
+          </div>
+          <span class="dev-badge badge-normal" id="devBadge">NORMAL</span>
+        </div>
+
+        <!-- 3D Error Metrics -->
+        <div class="deviation-metrics-grid">
+          <div class="dev-metric-item">
+            <span class="dev-metric-label">POSITION ERROR (Δr)</span>
+            <div class="dev-metric-val mono" id="devPosError">0.342 <span class="unit">km</span></div>
+            <div class="dev-bar-wrap">
+              <div class="dev-bar" id="devPosBar" style="width: 5%; background: var(--color-normal);"></div>
+            </div>
+          </div>
+
+          <div class="dev-metric-item">
+            <span class="dev-metric-label">VELOCITY ERROR (Δv)</span>
+            <div class="dev-metric-val mono" id="devVelError">0.0018 <span class="unit">km/s</span></div>
+            <div class="dev-bar-wrap">
+              <div class="dev-bar" id="devVelBar" style="width: 4%; background: var(--color-normal);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RSW Error Decomposition -->
+        <div class="rsw-grid">
+          <div class="rsw-item">
+            <span class="rsw-label">Radial (R)</span>
+            <span class="rsw-val mono" id="rswRadial">+0.08 km</span>
+          </div>
+          <div class="rsw-item">
+            <span class="rsw-label">Along-Track (S)</span>
+            <span class="rsw-val mono" id="rswAlong">+0.21 km</span>
+          </div>
+          <div class="rsw-item">
+            <span class="rsw-label">Cross-Track (W)</span>
+            <span class="rsw-val mono" id="rswCross">+0.05 km</span>
+          </div>
+        </div>
+
+        <!-- Anomaly Banner / Quick Diagnosis Snippet -->
+        <div class="diagnosis-snippet" id="diagnosisSnippet">
+          <div class="diag-headline" id="diagHeadline">NOMINAL ORBIT PROPAGATION</div>
+          <p class="diag-text" id="diagText">Current state agrees with numerical ephemeris baseline within 1.0 km tolerance.</p>
+          <button class="btn btn-sm btn-outline-info" id="btnOpenDiagnosisModal">
+            <i class="fa-solid fa-file-waveform"></i> View Full Diagnostic Report
+          </button>
+        </div>
+      </div>
+
+      <!-- KEPLERIAN ORBITAL PARAMETERS ACCORDION -->
+      <div class="keplerian-section">
+        <div class="section-title">
+          <i class="fa-solid fa-compass-drafting"></i>
+          <span>CLASSICAL ORBITAL ELEMENTS (COE)</span>
+        </div>
+        <div class="kepler-table">
+          <div class="kepler-row">
+            <span class="k-label">Semi-Major Axis (a)</span>
+            <span class="k-val mono" id="kepSMA">6796.5 km</span>
+          </div>
+          <div class="kepler-row">
+            <span class="k-label">Eccentricity (e)</span>
+            <span class="k-val mono" id="kepEcc">0.000492</span>
+          </div>
+          <div class="kepler-row">
+            <span class="k-label">Inclination (i)</span>
+            <span class="k-val mono" id="kepInc">51.64°</span>
+          </div>
+          <div class="kepler-row">
+            <span class="k-label">RAAN (Ω)</span>
+            <span class="k-val mono" id="kepRaan">208.31°</span>
+          </div>
+          <div class="kepler-row">
+            <span class="k-label">Arg of Perigee (ω)</span>
+            <span class="k-val mono" id="kepArgp">112.52°</span>
+          </div>
+          <div class="kepler-row">
+            <span class="k-label">Orbital Period (T)</span>
+            <span class="k-val mono" id="kepPeriod">92.85 min</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- BOTTOM PANEL: REAL-TIME DEVIATION CHARTS -->
+  <section class="charts-drawer" id="chartsDrawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <i class="fa-solid fa-chart-area"></i>
+        <span>REAL-TIME DEVIATION TELEMETRY HISTORY</span>
+      </div>
+      <div class="drawer-tabs">
+        <button class="drawer-tab active" data-chart="pos">Position Error (Δr km)</button>
+        <button class="drawer-tab" data-chart="vel">Velocity Error (Δv km/s)</button>
+        <button class="drawer-tab" data-chart="rsw">RSW Error Components</button>
+      </div>
+      <button class="drawer-toggle" id="btnToggleDrawer" title="Collapse/Expand Drawer">
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <div class="chart-container">
+        <canvas id="deviationChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- "WHAT HAPPENED?" FORENSIC DIAGNOSTIC MODAL -->
+  <div class="modal-backdrop" id="diagnosticModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-microscope modal-icon"></i>
+          <div>
+            <h2 class="modal-title">ORBITAL ANOMALY FORENSIC REPORT</h2>
+            <div class="modal-sub" id="modalSatSub">Satellite: ISS (ZARYA) • Evaluation Epoch: UTC</div>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Severity Alert Banner -->
+        <div class="modal-alert-banner alert-banner-normal" id="modalAlertBanner">
+          <div class="alert-icon-box">
+            <i class="fa-solid fa-shield-halved" id="modalAlertIcon"></i>
+          </div>
+          <div>
+            <div class="alert-headline" id="modalHeadline">NOMINAL ORBIT TRACKING</div>
+            <div class="alert-desc" id="modalAssessment">Current trajectory conforms with numerical RK4 physics model within nominal tolerances.</div>
+          </div>
+          <div class="alert-confidence-pill" id="modalConfidence">CONFIDENCE: HIGH</div>
+        </div>
+
+        <!-- Forensic Comparison Table -->
+        <div class="forensic-section">
+          <h3 class="forensic-heading"><i class="fa-solid fa-table-columns"></i> State Vector & Parameter Comparison</h3>
+          <div class="table-responsive">
+            <table class="forensic-table">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Predicted (Physics)</th>
+                  <th>Updated / Observed</th>
+                  <th>Delta / Discrepancy</th>
+                  <th>Evaluation</th>
+                </tr>
+              </thead>
+              <tbody id="modalTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Probable Root Causes Breakdown -->
+        <div class="forensic-section">
+          <h3 class="forensic-heading"><i class="fa-solid fa-magnifying-glass-chart"></i> Probable Root Causes Assessment</h3>
+          <div class="causes-list" id="modalCausesList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Recommended Flight Dynamics Actions -->
+        <div class="forensic-section">
+          <h3 class="forensic-heading"><i class="fa-solid fa-compass"></i> Flight Dynamics Recommendation</h3>
+          <div class="recommendation-box" id="modalRecommendation">
+            Continue automated tracking. No manual orbital re-baseline required at this time.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnModalCloseSecondary">Close Inspector</button>
+        <button class="btn btn-primary" id="btnModalRebaseline">
+          <i class="fa-solid fa-satellite-dish"></i> Re-baseline Numerical Propagation
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/diagnostics.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/globe.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+================================================================================
+  ASTROTRACE — HACKATHON QUICK REFERENCE
+================================================================================
+  Live:   http://localhost:8000     |     Run: python3 run.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  WHAT IS IT?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Real-time satellite orbit monitoring + anomaly detection system.
+  Compares a physics-based predicted orbit against actual TLE-observed orbit.
+  Any mismatch = anomaly. Visualised on a live 3D Earth.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PIPELINE (30-second explanation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TLE from CelesTrak
+    -> SGP4 propagation         (what the TLE says the satellite IS doing)
+    -> RK4 physics prediction   (what physics says it SHOULD be doing)
+    -> Compare: delta-r, delta-v in RSW frame
+    -> Classify: NORMAL / WATCH / WARNING / CRITICAL
+    -> Stream to frontend via WebSocket @ 2 Hz
+    -> Render on Three.js 3D Earth with live charts + alerts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHYSICS USED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SGP4      : Analytical orbit propagation from TLE (NORAD standard)
+  RK4       : 4th-order Runge-Kutta numerical integration
+  J2        : Earth oblateness perturbation (orbital plane precession)
+  Drag      : Exponential atmospheric density model (a_drag = -½ CD A/m ρ v_rel²)
+  RSW Frame : Radial / In-track / Cross-track error decomposition
+  COE       : Classical Orbital Elements (a, e, i, Ω, ω, ν, T)
+  Geodetic  : Bowring's iterative ECEF -> WGS-84 lat/lon/alt conversion
+  GMST      : IAU-76 Greenwich Mean Sidereal Time for ECI <-> ECEF rotation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Backend  : Python + FastAPI + Uvicorn + sgp4 + NumPy + SQLite (WAL)
+  Frontend : Three.js (WebGL 3D Earth) + Chart.js + Vanilla CSS + WebSocket
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SATELLITES TRACKED (8 total)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ISS (LEO ~415 km), Tiangong (LEO ~389 km), Starlink-30122 (LEO ~550 km),
+  Hubble (LEO ~538 km), NOAA-20 (SSO ~824 km), Landsat-9 (SSO ~705 km),
+  GPS NAVSTAR-66 (MEO ~20200 km), GOES-16 (GEO ~35786 km)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ANOMALY SEVERITY THRESHOLDS (position error delta-r)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  NORMAL   < 1 km       (green)
+  WATCH    1 – 5 km     (yellow)
+  WARNING  5 – 20 km    (amber)
+  CRITICAL > 20 km      (red)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SCENARIO INJECTOR  (bottom bar of the UI)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ORBIT_RAISE_MANEUVER      +30 km altitude, along-track delta-v kick
+  ATMOSPHERIC_DRAG_SPIKE    -15 km altitude, increased drag perturbation
+  INCLINATION_PLANE_CHANGE  ±0.3 deg inclination, cross-track kick
+  DEORBIT_BURN              -50 km altitude, retrograde burn
+  SENSOR_EPHEMERIS_UPDATE   Random small noise across all elements
+  RESET_NOMINAL             Clears all perturbations, back to clean TLE
+
+  After any scenario:
+    * Deviation grows (often CRITICAL)
+    * A RED dashed orbit line appears on the globe (the deviated RK4 path)
+    * CYAN orbit = nominal SGP4 (TLE-based)
+    * AMBER dashed = nominal RK4 predicted
+    * RED dashed = perturbed RK4 (post-scenario deviated path)
+    * Click "What Happened?" -> forensic root-cause analysis modal
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3D GLOBE FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  NASA texture maps (day + specular + normal + clouds)
+  Procedural canvas fallback if offline
+  Rayleigh atmospheric scattering glow shader (GLSL)
+  Rotating cloud layer (separate sphere, additive blending)
+  3500-star procedural starfield (3 spectral types)
+  ACESFilmic tone mapping on WebGLRenderer
+  Satellite 3D model: body + solar wings + comm dish + pulsing beacon
+  Beacon colour-shifts by severity: cyan -> yellow -> amber -> red
+  Nadir reticle + dashed nadir line on Earth surface
+  Camera modes: Free Orbit / Chase (follows sat) / Top-down Nadir
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  KEY API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  GET  /api/satellites                        all 8 satellites + status
+  GET  /api/satellite/{id}/position           lat/lon/alt/ECEF/velocity
+  GET  /api/satellite/{id}/orbit              SGP4 orbit ribbon (ECEF points)
+  GET  /api/satellite/{id}/prediction         RK4 predicted trajectory
+  GET  /api/satellite/{id}/deviation          delta-r, delta-v, RSW, severity
+  POST /api/satellite/{id}/simulate-event     inject scenario
+  ws:  /ws/satellite/{id}   2 Hz telemetry stream
+  ws:  /ws/fleet            1 Hz fleet overview stream
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMMON JUDGE QUESTIONS & ANSWERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Where does the satellite data come from?
+A: TLE (Two-Line Element) sets from CelesTrak — the public NORAD/Space Force
+   catalogue. Updated via async HTTP fetch; cached locally as JSON fallback.
+
+Q: What is a TLE?
+A: Two-Line Element set. A compact text format used by NORAD since the 1970s
+   encoding a satellite's orbital state (6 Keplerian elements + drag + epoch)
+   good for ~days of propagation.
+
+Q: Why compare SGP4 vs RK4?
+A: SGP4 uses the TLE's mean elements (may be stale, model-limited).
+   RK4 uses current physical laws (J2 + drag) from the same starting state.
+   Divergence over time reveals real orbital changes: manoeuvres, drag spikes,
+   or TLE inaccuracies.
+
+Q: What is J2 perturbation?
+A: Earth isn't a perfect sphere — it bulges at the equator. This extra mass
+   makes satellite orbital planes precess over time. J2 = 0.00108263 is the
+   second zonal harmonic coefficient of Earth's gravity field.
+
+Q: What is RSW?
+A: Radial / In-track (along-track) / Cross-track — a satellite-centred
+   rotating frame. Decomposing errors into RSW tells you:
+   Radial = altitude error, Along-track = phase/manoeuvre signature,
+   Cross-track = inclination/plane change.
+
+Q: What does the "What Happened?" modal do?
+A: It compares pre- and post-event Keplerian elements (delta-a, delta-e,
+   delta-i, delta-v), runs a likelihood engine, and ranks probable root causes
+   (manoeuvre, drag spike, ephemeris update) with a confidence percentage.
+
+Q: Is this real-time?
+A: Yes. WebSocket at 2 Hz for active satellite, 1 Hz for fleet overview.
+   Position, velocity, deviation, and all Keplerian elements update live.
+
+Q: What's novel / unique about this?
+A: Most satellite trackers only visualise position. AstroTrace adds a
+   numerical physics prediction layer, computes deviations in the RSW frame,
+   classifies anomalies with configurable thresholds, lets you inject
+   real-world orbital events (manoeuvres, drag spikes, deorbit burns) and
+   instantly see the divergence between nominal and deviated orbits on the
+   3D globe — all in real-time on a web browser with no plugins.
+
+Q: What are the limitations?
+A: TLE freshness depends on CelesTrak publish rate (hours to days).
+   Atmosphere model is exponential (not NRLMSISE-00).
+   No third-body (Moon/Sun) perturbations or solar radiation pressure yet.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ORBIT LINE COLOUR KEY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CYAN  (solid)   : Nominal SGP4 orbit from TLE
+  AMBER (dashed)  : RK4 numerical predicted path (J2 + drag physics)
+  PURPLE (dashed) : Ground track (sub-satellite surface projection)
+  RED   (dashed)  : Deviated orbit after scenario injection (perturbed RK4)
+================================================================================

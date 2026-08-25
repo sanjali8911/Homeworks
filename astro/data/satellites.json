@@ -1,0 +1,98 @@
+[
+  {
+    "id": "iss",
+    "norad_id": 25544,
+    "name": "ISS (ZARYA)",
+    "category": "Space Station",
+    "orbit_type": "LEO",
+    "description": "International Space Station in low Earth orbit. Habitable artificial satellite serving as a microgravity research laboratory.",
+    "launch_year": 1998,
+    "country": "International",
+    "mass_kg": 419725,
+    "color": "#00f2ff"
+  },
+  {
+    "id": "tiangong",
+    "norad_id": 48274,
+    "name": "CSS (TIANGONG)",
+    "category": "Space Station",
+    "orbit_type": "LEO",
+    "description": "Chinese Space Station modular space station in low Earth orbit.",
+    "launch_year": 2021,
+    "country": "China",
+    "mass_kg": 66000,
+    "color": "#ff0077"
+  },
+  {
+    "id": "starlink-30122",
+    "norad_id": 55850,
+    "name": "STARLINK-30122",
+    "category": "Communication",
+    "orbit_type": "LEO",
+    "description": "SpaceX Starlink constellation satellite providing high-speed satellite internet connectivity.",
+    "launch_year": 2023,
+    "country": "USA",
+    "mass_kg": 800,
+    "color": "#00ff88"
+  },
+  {
+    "id": "hubble",
+    "norad_id": 20580,
+    "name": "HST (HUBBLE)",
+    "category": "Science",
+    "orbit_type": "LEO",
+    "description": "Hubble Space Telescope, observing deep space, galaxies, and planetary atmospheres since 1990.",
+    "launch_year": 1990,
+    "country": "USA/ESA",
+    "mass_kg": 11110,
+    "color": "#9d4edd"
+  },
+  {
+    "id": "noaa-20",
+    "norad_id": 43013,
+    "name": "NOAA-20 (JPSS-1)",
+    "category": "Weather",
+    "orbit_type": "SSO",
+    "description": "Sun-synchronous polar-orbiting environmental satellite providing meteorological and climate monitoring.",
+    "launch_year": 2017,
+    "country": "USA",
+    "mass_kg": 2540,
+    "color": "#ffaa00"
+  },
+  {
+    "id": "landsat-9",
+    "norad_id": 49260,
+    "name": "LANDSAT 9",
+    "category": "Earth Observation",
+    "orbit_type": "SSO",
+    "description": "NASA/USGS Earth observation satellite capturing multi-spectral imagery of terrestrial surfaces.",
+    "launch_year": 2021,
+    "country": "USA",
+    "mass_kg": 2713,
+    "color": "#2ec4b6"
+  },
+  {
+    "id": "gps-biif-2",
+    "norad_id": 37753,
+    "name": "NAVSTAR 66 (USA 232)",
+    "category": "Navigation",
+    "orbit_type": "MEO",
+    "description": "US Global Positioning System Block IIF satellite in Medium Earth Orbit.",
+    "launch_year": 2011,
+    "country": "USA",
+    "mass_kg": 1630,
+    "color": "#3a86ff"
+  },
+  {
+    "id": "goes-16",
+    "norad_id": 41866,
+    "name": "GOES 16",
+    "category": "Weather",
+    "orbit_type": "GEO",
+    "description": "Geostationary Operational Environmental Satellite monitoring severe weather and solar activity across the Americas.",
+    "launch_year": 2016,
+    "country": "USA",
+    "mass_kg": 5192,
+    "color": "#ff0055"
+  }
+]

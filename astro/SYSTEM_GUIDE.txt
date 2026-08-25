@@ -1,0 +1,837 @@
+================================================================================
+  ASTROTRACE — REAL-TIME SATELLITE ORBIT MONITORING & ANOMALY DETECTION SYSTEM
+  Complete Technical & Feature Reference Guide
+================================================================================
+
+Project Root: /Desktop/astro/
+Live URL:     http://localhost:8000
+Run Server:   python3 run.py
+
+────────────────────────────────────────────────────────────────────────────────
+  TABLE OF CONTENTS
+────────────────────────────────────────────────────────────────────────────────
+
+  1.  System Overview
+  2.  Directory Structure
+  3.  Technology Stack
+  4.  Backend Architecture
+      4a. Configuration (config.py)
+      4b. TLE Fetcher & Parser (satellite/tle.py)
+      4c. Physics Engine (satellite/physics.py)
+      4d. Coordinate Transforms (satellite/coordinate.py)
+      4e. Orbital Propagator (satellite/propagator.py)
+      4f. Anomaly Detection Engine (satellite/anomaly.py)
+      4g. SQLite Database (database/db.py + models.py)
+      4h. FastAPI REST API (api/routes.py)
+      4i. WebSocket Streaming (api/websocket.py)
+      4j. Main Server (main.py + run.py)
+  5.  Frontend Architecture
+      5a. HTML Layout (index.html)
+      5b. CSS Design System (css/style.css)
+      5c. 3D Earth & Globe Engine (js/globe.js)
+      5d. Real-Time Charts (js/charts.js)
+      5e. Forensic Diagnostics Modal (js/diagnostics.js)
+      5f. Main App Coordinator (js/app.js)
+  6.  Satellite Catalog
+  7.  All API Endpoints (REST + WebSocket)
+  8.  Feature Deep-Dives
+      8a. Two-Body + J2 + Drag Numerical Propagation
+      8b. SGP4 Analytical Propagation
+      8c. Anomaly Detection & Severity Classification
+      8d. Scenario Injector & Deviated Orbit Visualization
+      8e. "What Happened?" Forensic Modal
+      8f. 3D Earth Photorealistic Rendering
+      8g. WebSocket Telemetry Streaming
+      8h. Real-Time Charts
+  9.  Orbital Physics Formulas
+  10. Design System
+  11. Testing
+  12. Known Limitations & Future Work
+
+
+================================================================================
+  1. SYSTEM OVERVIEW
+================================================================================
+
+AstroTrace is a full-stack, real-time satellite orbit monitoring and anomaly
+detection platform. It combines high-precision orbital mechanics with a
+cinematic 3D Mission Control UI.
+
+The core pipeline is:
+
+  [CelesTrak TLE Data]
+         |
+         v
+  [TLE Parser + Epoch Handler]
+         |
+         v
+  [SGP4 Analytical Propagator]  <--- Actual "observed" state
+         |
+         v
+  [RK4 Numerical Integrator]    <--- Predicted state (J2 + drag physics)
+         | (Two-body + J2 + Drag)
+         v
+  [State Vector Comparison: Predicted vs. Actual]
+         |
+         v
+  [Anomaly Engine: DeltaPosition, DeltaVelocity, RSW Decomposition]
+         |
+         v
+  [Severity Classifier: NORMAL / WATCH / WARNING / CRITICAL]
+         |
+         v
+  [FastAPI REST + WebSocket @ 2 Hz]
+         |
+         v
+  [Three.js 3D Earth + Chart.js + HUD Telemetry + "What Happened?" Modal]
+
+
+================================================================================
+  2. DIRECTORY STRUCTURE
+================================================================================
+
+astro/
+|
++-- run.py                        <- Root entry point. Runs uvicorn on port 8000.
++-- requirements.txt              <- Python packages.
++-- SYSTEM_GUIDE.txt              <- THIS FILE.
+|
++-- data/
+|   +-- satellites.json           <- Catalog of 8 curated satellites.
+|   +-- tle_cache.json            <- Cached TLE strings (offline fallback).
+|
++-- backend/
+|   +-- config.py                 <- Physical constants + anomaly thresholds.
+|   |
+|   +-- satellite/
+|   |   +-- coordinate.py         <- GMST, ECI<->ECEF, Geodetic, RSW transforms.
+|   |   +-- physics.py            <- RK4 integrator, J2, drag, COE extraction.
+|   |   +-- tle.py                <- TLE fetcher (CelesTrak async), parser, cache.
+|   |   +-- propagator.py         <- SGP4 + RK4 propagators. 3D orbit ribbon gen.
+|   |   +-- anomaly.py            <- Deviation calc, severity, scenario injector.
+|   |
+|   +-- database/
+|   |   +-- db.py                 <- SQLite WAL connection + schema + queries.
+|   |   +-- models.py             <- Pydantic v2 request/response schemas.
+|   |
+|   +-- api/
+|       +-- routes.py             <- All 14 FastAPI REST endpoints.
+|       +-- websocket.py          <- 2 Hz satellite WS + 1 Hz fleet broadcast WS.
+|
++-- frontend/
+|   +-- index.html                <- Single-page Mission Control layout.
+|   +-- css/
+|   |   +-- style.css             <- SpaceX/NASA dark aerospace design system.
+|   +-- js/
+|       +-- globe.js              <- Three.js photorealistic Earth + orbit ribbons.
+|       +-- charts.js             <- Chart.js real-time deviation time-series.
+|       +-- diagnostics.js        <- "What Happened?" forensic modal renderer.
+|       +-- app.js                <- WebSocket manager, telemetry HUD, scenarios.
+|
++-- tests/
+    +-- test_physics.py           <- RK4, J2, energy conservation tests.
+    +-- test_tle.py               <- TLE parsing, SGP4, orbit ribbon tests.
+    +-- test_anomaly.py           <- RSW error, severity, scenario tests.
+
+
+================================================================================
+  3. TECHNOLOGY STACK
+================================================================================
+
+BACKEND
+  Language:     Python 3.14
+  Framework:    FastAPI (async, ASGI)
+  ASGI Server:  Uvicorn
+  Validation:   Pydantic v2
+  Orbit Engine: sgp4 (v2.27) — SGP4/SDP4 analytical propagation
+  Numerics:     NumPy (v2.5.2) — vectorised maths
+  HTTP Client:  httpx (async TLE fetching from CelesTrak)
+  Database:     SQLite (WAL mode, via aiosqlite)
+  Files:        aiofiles
+
+FRONTEND
+  3D Rendering: Three.js r134 — WebGL-based 3D Earth, satellite meshes, orbit lines
+  Controls:     THREE.OrbitControls — mouse-driven camera with damping
+  Charts:       Chart.js 4 — real-time streaming line charts
+  Icons:        Font Awesome 6 (Solid)
+  Fonts:        Inter (body), Space Grotesk (display), JetBrains Mono (telemetry)
+  Styling:      Vanilla CSS (custom properties + glassmorphism)
+
+
+================================================================================
+  4. BACKEND ARCHITECTURE
+================================================================================
+
+--------------------------------------------------------------
+  4a. CONFIGURATION  (backend/config.py)
+--------------------------------------------------------------
+
+  All physical constants used system-wide:
+
+  MU_EARTH          = 398600.4418  km3/s2  (Earth's gravitational parameter)
+  EARTH_RADIUS_KM   = 6378.137    km       (WGS-84 equatorial radius)
+  J2                = 0.00108263           (Earth oblateness coefficient)
+  OMEGA_EARTH       = 7.2921150e-5 rad/s   (Earth rotation rate)
+  DRAG_COEFF (CD)   = 2.2                  (Typical satellite drag coefficient)
+  ATMO_REF_DENSITY  = 1.225e-12   kg/km3   (Reference atmospheric density)
+  ATMO_SCALE_HEIGHT = 8.5         km       (Exponential atmosphere scale height)
+
+  Anomaly severity thresholds (delta-r position error in km):
+    NORMAL:   < 1.0 km
+    WATCH:    1.0 to 5.0 km
+    WARNING:  5.0 to 20.0 km
+    CRITICAL: > 20.0 km
+
+--------------------------------------------------------------
+  4b. TLE FETCHER & PARSER  (backend/satellite/tle.py)
+--------------------------------------------------------------
+
+  Fetches Two-Line Element (TLE) sets from CelesTrak asynchronously via httpx.
+  Parses TLE strings into structured fields:
+    Name, NORAD ID, Classification, Epoch, BSTAR drag term,
+    Inclination, RAAN, Eccentricity, Arg. of Perigee, Mean Anomaly, Mean Motion.
+  Converts TLE epoch to Python datetime.
+  Maintains local JSON cache (data/tle_cache.json) for offline operation.
+
+  TLEManager class:
+    get_tle(norad_id)  -> fetches from cache or CelesTrak
+    refresh_all()      -> async background update of all satellites
+    parse_epoch(tle)   -> returns datetime of TLE epoch
+
+--------------------------------------------------------------
+  4c. PHYSICS ENGINE  (backend/satellite/physics.py)
+--------------------------------------------------------------
+
+  RK4 Numerical Integrator
+  -------------------------
+  4th-order Runge-Kutta method integrates equations of motion.
+  Given state [r, v] and time step h, computes 4 derivative evaluations
+  (k1..k4) and combines with [1/6, 2/6, 2/6, 1/6] weights.
+
+  Acceleration Model
+  ------------------
+  a_total = a_gravity_central + a_J2 + a_drag
+
+  a_gravity_central (Earth point-mass gravity):
+    a = -mu * r / |r|^3
+
+  a_J2 (Oblate Earth Equatorial Bulge Perturbation):
+    Accounts for Earth's equatorial bulge causing orbital plane precession.
+    factor = (3/2) * J2 * mu * R_E^2 / |r|^5
+    a_J2_x = factor * x * (5*z^2/|r|^2 - 1)
+    a_J2_y = factor * y * (5*z^2/|r|^2 - 1)
+    a_J2_z = factor * z * (5*z^2/|r|^2 - 3)
+
+  a_drag (Atmospheric Drag):
+    Exponential density model: rho(h) = rho_0 * exp(-h / H_scale)
+    where h = |r| - R_E (altitude above Earth surface)
+    F_drag = -0.5 * CD * A/m * rho * |v_rel|^2 in direction of v_rel
+    v_rel = velocity relative to rotating atmosphere = v - omega_E x r
+
+  Classical Orbital Elements Extraction:
+    extract_coe(r, v) converts state vector to:
+      a  -- semi-major axis (km)
+      e  -- eccentricity
+      i  -- inclination (deg)
+      Omega -- RAAN (deg)
+      omega -- argument of perigee (deg)
+      nu -- true anomaly (deg)
+      T  -- orbital period (minutes)
+      eps -- specific orbital energy (km2/s2)
+      h_apo / h_per -- apogee and perigee altitudes (km)
+
+--------------------------------------------------------------
+  4d. COORDINATE TRANSFORMS  (backend/satellite/coordinate.py)
+--------------------------------------------------------------
+
+  GMST (Greenwich Mean Sidereal Time)
+    Converts UTC datetime -> GMST angle (radians) via IAU-76 formula.
+
+  ECI -> ECEF
+    ECI (Earth-Centred Inertial): axes fixed to distant stars.
+    ECEF (Earth-Centred Earth-Fixed): rotates with Earth.
+    Conversion: rotate ECI by -GMST around Z axis.
+
+  ECEF -> Geodetic (WGS-84 Lat/Lon/Alt)
+    Bowring's iterative method.
+    Longitude = atan2(Y_ecef, X_ecef)
+    Latitude  = iteratively solved from X, Y, Z and Earth's flattening.
+    Altitude  = distance from surface along local normal.
+
+  RSW / RIC Frame
+    Satellite-centred frame rotating with orbital motion.
+    R-hat = r/|r|                   (radial, away from Earth)
+    W-hat = (r x v) / |r x v|      (cross-track, orbit normal)
+    S-hat = W-hat x R-hat           (along-track / in-track)
+    Used to decompose position error into its 3 components.
+
+--------------------------------------------------------------
+  4e. ORBITAL PROPAGATOR  (backend/satellite/propagator.py)
+--------------------------------------------------------------
+
+  SGP4 Propagator (Analytical)
+    Uses python-sgp4 library. Accounts for J2, J3, J4, drag, lunar/solar
+    gravity, solar radiation pressure. Called as satellite.sgp4(jd, fr).
+
+  RK4 Propagator (Numerical)
+    Integrates physics.py's force model forward in time from current SGP4 state.
+    Produces the "predicted" trajectory for comparison with SGP4 "actual".
+
+  Orbit Ribbon Generator
+    Propagates for a full orbital period and returns ECEF, ECI, geodetic points.
+    Frontend uses these to draw the cyan orbit line and purple ground track.
+
+--------------------------------------------------------------
+  4f. ANOMALY DETECTION ENGINE  (backend/satellite/anomaly.py)
+--------------------------------------------------------------
+
+  Deviation Calculation
+    Every update:
+      delta_r = |r_sgp4 - r_predicted|  (km)
+      delta_v = |v_sgp4 - v_predicted|  (km/s)
+    Decomposes delta_r into RSW components.
+
+  Severity Classification (by delta_r):
+    NORMAL:   < 1.0 km
+    WATCH:    1.0 to 5.0 km
+    WARNING:  5.0 to 20.0 km
+    CRITICAL: >= 20.0 km
+
+  Scenario Injector
+    Perturbs the propagation reference state to simulate orbital events.
+
+    Available scenarios:
+      ORBIT_RAISE_MANEUVER      -> +delta_a (~30 km), +delta_v along-track
+      ATMOSPHERIC_DRAG_SPIKE    -> -delta_a (~15 km), increased drag
+      INCLINATION_PLANE_CHANGE  -> +/-delta_i (~0.3 deg), cross-track kick
+      DEORBIT_BURN              -> -delta_a (~50 km), retrograde delta_v
+      SENSOR_EPHEMERIS_UPDATE   -> random small noise on all elements
+      RESET_NOMINAL             -> clears all perturbations
+
+    After injection:
+      * Deviation grows (often CRITICAL)
+      * Red deviated orbit line appears on globe
+      * "What Happened?" diagnostic modal shows probable causes
+
+  "What Happened?" Diagnostic Engine
+    Compares current Keplerian elements vs. baseline:
+      delta_a, delta_e, delta_i, delta_alt, delta_v
+    Assigns likelihood scores to candidate causes:
+      Orbit Raise / Plane Change Manoeuvre
+      Atmospheric Drag Spike
+      Ephemeris Update / Sensor Reset
+      Spontaneous Anomaly
+    Outputs: status headline, assessment, recommendations, confidence %.
+
+--------------------------------------------------------------
+  4g. SQLITE DATABASE  (backend/database/db.py + models.py)
+--------------------------------------------------------------
+
+  WAL (Write-Ahead Log) mode for concurrent reads during writes.
+
+  Schema tables:
+    satellites     -- static catalog metadata
+    deviations     -- time-series: delta_r, delta_v, RSW, severity per satellite
+    anomaly_events -- logged WATCH/WARNING/CRITICAL events with timestamps
+
+  Pydantic v2 schemas in models.py:
+    SatelliteModel, PositionModel, DeviationModel, PredictionModel,
+    AnomalyEventModel, ScenarioRequest
+
+--------------------------------------------------------------
+  4h. FASTAPI REST API  (backend/api/routes.py)
+--------------------------------------------------------------
+
+  All endpoints prefixed with /api:
+
+  GET  /api/satellites               -- Full fleet catalog with severity
+  GET  /api/satellite/{id}           -- Single satellite metadata
+  GET  /api/satellite/{id}/position  -- Current ECEF, ECI, Geodetic, velocity
+  GET  /api/satellite/{id}/orbit     -- ECEF orbit ribbon points (1 period)
+  GET  /api/satellite/{id}/prediction-- RK4 predicted trajectory (6 hours)
+  GET  /api/satellite/{id}/deviation -- Current deviation, RSW, diagnosis
+  GET  /api/satellite/{id}/history   -- Last N deviation records from SQLite
+  GET  /api/anomalies                -- All logged anomaly events
+  POST /api/satellite/{id}/simulate-event  -- Inject scenario perturbation
+  POST /api/tle/refresh              -- Trigger CelesTrak TLE background sync
+
+--------------------------------------------------------------
+  4i. WEBSOCKET STREAMING  (backend/api/websocket.py)
+--------------------------------------------------------------
+
+  ws://localhost:8000/ws/satellite/{id}  (2 Hz -- per-satellite telemetry)
+  ws://localhost:8000/ws/fleet           (1 Hz -- all-satellite fleet overview)
+
+  Satellite WS payload:
+  {
+    "type": "telemetry_update",
+    "timestamp": "2026-08-24T18:00:00Z",
+    "ecef":     { x, y, z, vx, vy, vz },
+    "geodetic": { latitude, longitude, altitude_km },
+    "keplerian": { semi_major_axis_km, eccentricity, inclination_deg, ... },
+    "deviation": {
+      "position_error_km": 2.34,
+      "velocity_error_km_s": 0.012,
+      "severity": "WATCH",
+      "rsw": { radial_km, along_track_km, cross_track_km },
+      "diagnosis": { status_headline, assessment, probable_causes, ... }
+    }
+  }
+
+--------------------------------------------------------------
+  4j. MAIN SERVER  (backend/main.py + run.py)
+--------------------------------------------------------------
+
+  main.py:
+    FastAPI app with lifespan context manager.
+    Startup: init SQLite, load TLE cache, start background TLE refresh.
+    CORSMiddleware for development (all origins).
+    Mounts frontend/ as StaticFiles at / (so FastAPI serves the HTML).
+    Includes REST router and WebSocket endpoints.
+
+  run.py:
+    Entry point: uvicorn on 0.0.0.0:8000, no auto-reload.
+    Usage: python3 run.py
+
+
+================================================================================
+  5. FRONTEND ARCHITECTURE
+================================================================================
+
+--------------------------------------------------------------
+  5a. HTML LAYOUT  (frontend/index.html)
+--------------------------------------------------------------
+
+  Single-page mission control app layout:
+
+  +--------------------------------------------------------+
+  | .mission-header                                         |
+  |  Brand Logo | Fleet Count | UTC Clock | Action Buttons |
+  +--------------------------------------------------------+
+  +---------------+----------------------------+-----------+
+  | .fleet-panel  | .viewport-section          | .telemetry|
+  |               |  (Three.js 3D globe)       | -panel    |
+  | Satellite     |                            |           |
+  | list with     |  HUD: satellite name,      | Metrics:  |
+  | search &      |  orbit type, status badge  | altitude, |
+  | filter tabs   |                            | velocity, |
+  |               |  Camera: Orbit/Chase/Nadir | lat/lon   |
+  | Fleet stats:  |                            |           |
+  | N normal      |  Layer Toggles:            | Deviation:|
+  | W watch       |  Actual/Predicted/         | delta_r,  |
+  | A anomaly     |  Ground/Deviated/Atmo      | delta_v,  |
+  |               |                            | RSW,      |
+  |               |  Scenario bar (bottom):    | diagnosis |
+  |               |  orbit raise, drag, etc.   |           |
+  |               |                            | Keplerian |
+  |               |                            | elements  |
+  +---------------+----------------------------+-----------+
+  | .charts-drawer (collapsible ~130px)                     |
+  |  Real-time Chart.js: DeltaPos / DeltaVel / RSW          |
+  +--------------------------------------------------------+
+
+  Overlay elements:
+    .modal-backdrop  -- "What Happened?" forensic modal (full-screen)
+    .toast-container -- auto-dismissing notification toasts (bottom-right)
+
+--------------------------------------------------------------
+  5b. CSS DESIGN SYSTEM  (frontend/css/style.css)
+--------------------------------------------------------------
+
+  Inspired by: SpaceX.com (stark black, white, electric blue)
+               NASA Mission Control (dark, amber, emerald, clean mono)
+
+  CSS Custom Properties (:root):
+    --bg-deep:        #000000     (absolute black space background)
+    --bg-panel:       rgba(8,11,18,0.88)  (translucent glass panels)
+    --color-cyan:     #00d2ff     (primary / active selections)
+    --color-emerald:  #00e676     (NORMAL status)
+    --color-watch:    #ffd600     (WATCH status)
+    --color-warning:  #ff9100     (WARNING status)
+    --color-critical: #ff1744     (CRITICAL + Deviated Orbit)
+    --color-purple:   #bf5af2     (ground track line)
+
+  Typography:
+    --font-main:    'Inter'           (body text)
+    --font-display: 'Space Grotesk'   (headings, buttons)
+    --font-mono:    'JetBrains Mono'  (all telemetry numerics)
+
+  Key component classes:
+    .panel               -- glass panel with backdrop-filter blur
+    .sat-card            -- clickable satellite list item
+    .metric-card         -- telemetry value display box
+    .status-pill         -- colored severity badge
+    .btn, .btn-primary   -- aerospace uppercase button
+    .cam-btn             -- camera mode toggle
+    .toggle-control      -- layer visibility checkbox label
+    .scenario-btn        -- scenario injector pill button
+    .modal-card          -- forensic overlay card
+    .toast               -- slide-in notification
+
+--------------------------------------------------------------
+  5c. 3D EARTH & GLOBE ENGINE  (frontend/js/globe.js)
+--------------------------------------------------------------
+
+  Class: SatelliteGlobe
+
+  Coordinate Mapping (ECEF -> Three.js):
+    Three.js X =  ECEF.x * 0.001   (1 unit = 1000 km)
+    Three.js Y =  ECEF.z * 0.001   (Z becomes Y, up-axis swap)
+    Three.js Z = -ECEF.y * 0.001   (Y negated for right-hand)
+  Earth radius in Three.js: 6.378137 units
+
+  Renderer Settings:
+    antialias=true, logarithmicDepthBuffer=true (prevents Z-fighting)
+    toneMapping=ACESFilmic (cinematic HDR), toneMappingExposure=1.25
+
+  Lighting:
+    AmbientLight (dim blue-black, 0.6 intensity) -- deep space ambient
+    DirectionalLight (warm white, 2.6) -- primary sunlight
+    DirectionalLight (cool blue, 0.35) -- earthshine/galactic bounce
+
+  Starfield:
+    3500 points on random spheres (r=500-1000 units).
+    3 star types: hot blue-white (12%), golden giants (18%), white (70%).
+
+  Procedural Earth Maps (canvas fallback, then NASA textures override):
+    Day Map 4096x2048: Ocean gradient + continent polygons + lat/lon grid
+    Specular Map 2048x1024: White (ocean=reflective), black (land=matte)
+    Night Lights Map: City glow clusters at 11 major urban centres
+
+  Earth Material (THREE.MeshPhongMaterial):
+    map=dayTex, specularMap=waterMask, specular=#336699, shininess=45
+    bumpMap for slight surface relief, normalMap if NASA texture loads
+
+  Cloud Layer:
+    Separate sphere (R + 0.048 units), AdditiveBlending, opacity=0.52.
+    Slowly rotates independent of Earth (+0.00035 rad/frame).
+
+  Atmospheric Scattering (Rayleigh):
+    GLSL ShaderMaterial on BackSide sphere at 1.15x Earth radius.
+    Fragment shader: intensity = pow(0.68 - dot(normal, cam_dir), 2.4)
+    Color: electric blue (0,165,255) at edges. AdditiveBlending.
+
+  Satellite 3D Model (THREE.Group):
+    Cylindrical body (silver MeshStandardMaterial, metalness=0.92)
+    Avionics cone cap (dark carbon fiber)
+    Two solar array wings (dark blue silicon panels, metalness=0.85)
+    High-gain antenna dish (gold foil hemisphere)
+    Wireframe beacon sphere that pulses + changes color by severity:
+      NORMAL=cyan, WATCH=yellow, WARNING=amber, CRITICAL=red
+
+  Orbit Lines:
+    Actual Orbit   -- LineBasicMaterial, cyan (#00d2ff), solid
+    Ground Track   -- LineDashedMaterial, purple (#bf5af2)
+    Predicted Path -- LineDashedMaterial, amber (#ffa000), dashed
+    Deviated Orbit -- LineDashedMaterial, RED (#ff1744), appears on scenario inject
+
+  Camera Modes:
+    orbit   -- free OrbitControls (mouse drag/scroll)
+    chase   -- follows 3.2 units behind satellite, lerp transition
+    topdown -- hovers at 1.42x satellite distance, looks at Earth centre
+
+  Nadir Indicator:
+    Green ring placed on Earth's surface directly below the satellite.
+    Dashed green line connects satellite to its sub-satellite point.
+
+--------------------------------------------------------------
+  5d. REAL-TIME CHARTS  (frontend/js/charts.js)
+--------------------------------------------------------------
+
+  Class: TelemetryChart
+  Three Chart.js 4 streaming line charts (selected by drawer tabs):
+    DeltaPos -- Position Error (km) vs time (last 40 points)
+    DeltaVel -- Velocity Error (km/s) vs time
+    RSW      -- Radial, In-track, Cross-track error (km) vs time (3 lines)
+
+  Update rate: 500 ms (WebSocket frames).
+  History load: /api/satellite/{id}/history on satellite select.
+  Sliding window: 40 data points visible at any time.
+
+--------------------------------------------------------------
+  5e. FORENSIC DIAGNOSTICS MODAL  (frontend/js/diagnostics.js)
+--------------------------------------------------------------
+
+  Class: DiagnosticsModal
+
+  Triggered by "Inspect" button in deviation panel.
+  Reads the latest latestDeviation object from WebSocket stream.
+
+  Modal sections:
+    1. Alert Banner: full-width coloured banner with headline + confidence %
+    2. State Vector Delta Table: predicted vs actual Keplerian element comparison
+       (delta_a, delta_e, delta_i, delta_Omega, delta_omega, delta_T, delta_alt, delta_v)
+    3. Probable Cause Ranking: up to 4 candidates with probability bars
+    4. Recommendation Box: flight dynamics action recommendation
+
+  showToast(message):
+    Creates a 4-second auto-dismissing slide-in toast notification.
+
+--------------------------------------------------------------
+  5f. MAIN APP COORDINATOR  (frontend/js/app.js)
+--------------------------------------------------------------
+
+  Class: AstroTraceApp
+
+  Manages:
+    Fleet catalog fetch + satellite list rendering
+    Search input + orbit-type filter tabs
+    Satellite selection (orbit + prediction + history load)
+    Two WebSocket connections (satellite 2Hz + fleet 1Hz)
+    HUD badge, telemetry cards, deviation box, Keplerian table updates
+    Scenario injector: POST API -> re-fetch orbit -> globe.updateDeviatedOrbit()
+                       or on RESET -> globe.clearDeviatedOrbit()
+    TLE sync button (triggers background CelesTrak refresh)
+    Charts drawer toggle
+    UTC clock (updates every second)
+
+
+================================================================================
+  6. SATELLITE CATALOG
+================================================================================
+
+  ID              Name             NORAD   Orbit Type   Altitude
+  ----------------------------------------------------------------
+  iss             ISS              25544   LEO          ~415 km
+  tiangong        Tiangong CSS     48274   LEO          ~389 km
+  starlink30122   Starlink-30122   57313   LEO          ~550 km
+  hubble          Hubble ST        20580   LEO          ~538 km
+  noaa20          NOAA-20          43013   SSO          ~824 km
+  landsat9        Landsat-9        49260   SSO          ~705 km
+  gps66           GPS NAVSTAR-66   48859   MEO          ~20200 km
+  goes16          GOES-16          41866   GEO          ~35786 km
+
+
+================================================================================
+  7. ALL API ENDPOINTS
+================================================================================
+
+  REST:
+  GET  /api/satellites
+  GET  /api/satellite/{id}
+  GET  /api/satellite/{id}/position
+  GET  /api/satellite/{id}/orbit?periods=1.0&num_points=120
+  GET  /api/satellite/{id}/prediction?hours=6&step_seconds=60
+  GET  /api/satellite/{id}/deviation
+  GET  /api/satellite/{id}/history?limit=40
+  GET  /api/anomalies
+  POST /api/satellite/{id}/simulate-event
+  POST /api/tle/refresh
+
+  WebSocket:
+  ws://localhost:8000/ws/satellite/{id}  (2 Hz, per-satellite telemetry)
+  ws://localhost:8000/ws/fleet           (1 Hz, all-satellite fleet overview)
+
+  Static files served at /:
+  GET  /                   -> frontend/index.html
+  GET  /css/style.css      -> SpaceX/NASA dark theme
+  GET  /js/globe.js        -> Three.js Earth engine
+  GET  /js/charts.js       -> Chart.js deviation charts
+  GET  /js/diagnostics.js  -> Forensic modal
+  GET  /js/app.js          -> Main UI coordinator
+
+
+================================================================================
+  8. FEATURE DEEP-DIVES
+================================================================================
+
+--------------------------------------------------------------
+  8a. TWO-BODY + J2 + DRAG NUMERICAL PROPAGATION
+--------------------------------------------------------------
+
+  1. SGP4 gives initial state r0, v0 at current UTC time.
+  2. RK4 integrator advances state using:
+       dr/dt = v
+       dv/dt = a_gravity + a_J2 + a_drag
+  3. Each step: h = step_seconds (default 60 s).
+  4. After N steps: trajectory of state vectors.
+
+  The predicted trajectory is what the satellite SHOULD do physically.
+  The SGP4 propagation is what the TLE SAYS it does.
+  Difference = deviation worth investigating.
+
+--------------------------------------------------------------
+  8b. SGP4 ANALYTICAL PROPAGATION
+--------------------------------------------------------------
+
+  SGP4 (Simplified General Perturbations 4): NORAD standard algorithm.
+  Accounts for: J2/J3/J4 oblateness, atmospheric drag (via BSTAR from TLE),
+  lunar/solar gravity, solar radiation pressure.
+  Python library: sgp4 by Brandon Rhodes.
+  Call: satellite.sgp4(jd, fr) where jd+fr = Julian Date.
+
+--------------------------------------------------------------
+  8c. ANOMALY DETECTION & SEVERITY CLASSIFICATION
+--------------------------------------------------------------
+
+  Every 500 ms (WebSocket frame):
+    1. SGP4 state at current time -> r_actual, v_actual
+    2. RK4 state propagated from TLE epoch -> r_predicted, v_predicted
+    3. delta_r = |r_actual - r_predicted|
+    4. Classify by threshold -> NORMAL/WATCH/WARNING/CRITICAL
+    5. Decompose delta_r into RSW components
+    6. Run diagnostic engine
+    7. Log to SQLite if severity >= WATCH
+    8. Broadcast via WebSocket
+
+--------------------------------------------------------------
+  8d. SCENARIO INJECTOR & DEVIATED ORBIT VISUALIZATION
+--------------------------------------------------------------
+
+  How the red orbit appears:
+    1. User clicks scenario button (e.g. "Orbit Raise").
+    2. POST /api/satellite/{id}/simulate-event applies perturbation.
+    3. app.js re-fetches GET /api/satellite/{id}/orbit (now perturbed ECEF).
+    4. globe.updateDeviatedOrbit(points) plots RED dashed line on 3D globe.
+    5. Original CYAN orbit remains -- compare nominal vs. deviated side by side.
+    6. Click RESET -> globe.clearDeviatedOrbit() removes red line.
+    7. "Deviated Orbit" layer toggle (#chkShowDeviatedOrbit) shows/hides red line.
+
+--------------------------------------------------------------
+  8e. "WHAT HAPPENED?" FORENSIC MODAL
+--------------------------------------------------------------
+
+  Click "Inspect" in the Deviation Analysis panel.
+  Modal reads latest latestDeviation object (from WebSocket stream).
+  DiagnosticsModal.show(deviation) renders:
+    1. Severity banner (coloured, with headline + confidence %)
+    2. Delta Keplerian table (predicted vs actual for all 8 elements)
+    3. Probable causes list with animated probability bars
+    4. Flight dynamics recommendation
+
+--------------------------------------------------------------
+  8f. 3D EARTH PHOTOREALISTIC RENDERING
+--------------------------------------------------------------
+
+  4 visual layers:
+    1. Phong material with specular water mask -> glossy oceans, matte land
+    2. Normal map from NASA -> surface topology relief
+    3. Cloud sphere (slightly larger) -> semi-transparent additive clouds
+    4. Atmospheric scattering halo shader -> blue Rayleigh limb glow
+
+  ACESFilmic tone mapping prevents blown-out highlights.
+  Cloud layer rotates independently of Earth.
+  NASA textures load asynchronously; procedural canvas maps as fallback.
+
+--------------------------------------------------------------
+  8g. WEBSOCKET TELEMETRY STREAMING
+--------------------------------------------------------------
+
+  Satellite stream: 2 Hz (500ms interval)
+    Payload: timestamp, ECEF position+velocity, geodetic lat/lon/alt,
+             full Keplerian elements, deviation analysis with RSW + diagnosis.
+
+  Fleet stream: 1 Hz (1000ms interval)
+    Payload: all satellite IDs with current severity + ECEF position.
+    Used to update the fleet marker dots on the 3D globe.
+
+--------------------------------------------------------------
+  8h. REAL-TIME CHARTS
+--------------------------------------------------------------
+
+  Bottom drawer (collapsible, ~130px tall).
+  Tab "DeltaPos" -> position error time series (km).
+  Tab "DeltaVel" -> velocity error time series (km/s).
+  Tab "RSW"      -> 3 overlaid lines for Radial/Along-track/Cross-track.
+  Update: every WebSocket frame (500ms).
+  History: 40 records loaded from SQLite on satellite select.
+  Sliding window: always shows most recent 40 data points.
+
+
+================================================================================
+  9. ORBITAL PHYSICS FORMULAS
+================================================================================
+
+  Two-body gravity:          a = -mu * r / |r|^3
+
+  J2 perturbation (ECI):     a_J2 = (3/2) J2 * mu * R_E^2 / |r|^5
+                                     * [ (5z^2/r^2 - 1) * x,
+                                         (5z^2/r^2 - 1) * y,
+                                         (5z^2/r^2 - 3) * z ]
+
+  Atmospheric drag:          a_drag = -0.5 * CD * (A/m) * rho(h) * |v_rel| * v_rel
+                             rho(h) = rho_0 * exp(-h / H_scale)
+
+  Vis-viva equation:         v^2 = mu * (2/r - 1/a)
+
+  Orbital period:            T = 2*pi * sqrt(a^3 / mu)
+
+  GMST (IAU-76):             theta_GMST = theta_0 + omega_E * delta_t
+                             theta_0 = 4.894961 + 6.300388 * T_0 (radians)
+                             T_0 = Julian centuries since J2000.0
+
+  RSW frame basis vectors:
+    R-hat = r / |r|                (radial, points away from Earth)
+    W-hat = (r x v) / |r x v|     (cross-track, orbit normal)
+    S-hat = W-hat x R-hat          (along-track / in-track)
+
+
+================================================================================
+  10. DESIGN SYSTEM
+================================================================================
+
+  Inspired by:
+    SpaceX.com: stark #000 black, pure white, electric blue, no gradients
+    NASA Mission Control: amber telemetry, emerald NOMINAL, red alerts, mono fonts
+
+  Key design decisions:
+  - backdrop-filter: blur(20px) on all panels -> glassmorphism depth on black BG
+  - All corners use --radius-xs (3px) for industrial precision aesthetic
+  - Font: Space Grotesk (futuristic, legible) for UI; JetBrains Mono for all
+    telemetry numerics (instantly readable at 2 Hz update rate)
+  - Pure black panels (no gradients) maximize contrast with coloured data
+  - Three.js ACESFilmic tone mapping gives globe a premium cinematic look
+  - Status colours always paired with text badge (never colour alone) for
+    accessibility at a glance even in peripheral vision
+
+
+================================================================================
+  11. TESTING
+================================================================================
+
+  Run all tests:  python3 -m pytest tests/ -v
+
+  test_physics.py
+    test_rk4_energy_conservation -- integrates circular orbit, checks energy
+                                    stays within 0.1% over 5 orbits
+    test_j2_acceleration         -- checks J2 magnitude at ISS altitude
+    test_drag_deceleration       -- verifies drag always decelerates
+
+  test_tle.py
+    test_tle_parsing             -- parses ISS TLE, checks field types/ranges
+    test_sgp4_propagation        -- propagates 60s, checks LEO altitude
+    test_orbit_ribbon_length     -- generates 1-period ribbon, checks point count
+
+  test_anomaly.py
+    test_normal_deviation        -- near-zero delta_r -> NORMAL
+    test_watch_deviation         -- 3 km delta_r -> WATCH
+    test_critical_deviation      -- 25 km delta_r -> CRITICAL
+    test_rsw_decomposition       -- RSW components near-zero for clean state
+    test_orbit_raise_scenario    -- inject orbit raise, delta_r grows to CRITICAL
+    test_reset_scenario          -- after inject, reset returns to near-zero delta_r
+
+
+================================================================================
+  12. KNOWN LIMITATIONS & FUTURE WORK
+================================================================================
+
+  Current Limitations:
+    - TLE freshness depends on last CelesTrak fetch. Real manoeuvres appear
+      as anomalies until a new TLE is published.
+    - Simple exponential atmosphere (not NRLMSISE-00 high-fidelity).
+    - 8 satellites in catalog (extendable via data/satellites.json).
+    - No authentication -- designed for local / trusted network use.
+
+  Possible Enhancements:
+    - Space-Track.org API for historical TLE time-series access
+    - NRLMSISE-00 high-fidelity atmospheric density model
+    - Third-body perturbations (Sun + Moon N-body point mass gravity)
+    - Solar Radiation Pressure (SRP) perturbation model
+    - Export telemetry time-series as CSV or JSON download
+    - Satellite pass prediction (rise/set times for a ground station)
+    - Multiple ground station footprint cones on the 3D globe
+    - WebGL instanced rendering for full Starlink shell (10,000+ satellites)
+
+================================================================================
+  END OF GUIDE
+================================================================================
