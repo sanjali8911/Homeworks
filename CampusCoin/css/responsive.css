@@ -1,0 +1,164 @@
+/* ==========================================================================
+   CampusCoin Responsive Rules for 3-Pane Twitter/Google Layout
+   ========================================================================== */
+
+/* Large Tablets & Small Desktops (max-width: 1200px) */
+@media (max-width: 1200px) {
+  .twitter-app-layout {
+    grid-template-columns: 220px minmax(0, 1fr) 290px;
+  }
+
+  .safe-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}
+
+/* Medium Tablets (max-width: 1000px) */
+@media (max-width: 1000px) {
+  .twitter-app-layout {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .right-pane {
+    display: none; /* Collapses to middle bottom if needed */
+  }
+
+  .nav-label, .brand-titles, .user-info, .btn-primary-pill span {
+    display: none;
+  }
+
+  .brand-container {
+    justify-content: center;
+    padding: 0.5rem 0 1rem 0;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+
+  .btn-primary-pill {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    margin: 0.5rem auto 1rem auto;
+  }
+
+  .user-profile-pill {
+    justify-content: center;
+    padding: 0.4rem;
+  }
+}
+
+/* Mobile Devices (max-width: 700px) */
+@media (max-width: 700px) {
+  .twitter-app-layout {
+    display: block;
+    padding-bottom: 70px;
+  }
+
+  .left-pane {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 60px;
+    z-index: 900;
+    padding: 0;
+    border-top: 1px solid var(--border-light);
+    border-right: none;
+    background: #ffffff;
+  }
+
+  .sidebar-sticky-wrap {
+    height: 100%;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .brand-container, .user-profile-pill, .btn-primary-pill {
+    display: none;
+  }
+
+  .side-nav {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+  }
+
+  .nav-item {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .middle-pane {
+    padding: 1rem 0.65rem;
+    border-right: none;
+  }
+
+  .middle-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .header-left-group, .header-right-group {
+    justify-content: space-between;
+  }
+
+  .planner-card {
+    padding: 0.85rem 0.5rem;
+  }
+
+  .col-day {
+    width: 110px;
+    min-width: 100px;
+  }
+
+  .col-cat {
+    min-width: 115px;
+  }
+
+  .modal-card {
+    padding: 1.15rem;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .backup-btn-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print Mode */
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  .left-pane, .right-pane, .planner-header-actions, .table-card-footer, .btn-subtle, .toast-container {
+    display: none !important;
+  }
+
+  .middle-pane {
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  .planner-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

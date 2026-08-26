@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "campuscoin",
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
