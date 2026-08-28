@@ -16,44 +16,7 @@ const CampusInsights = {
     const currentDay = now.getDay();
     const isApproachingWeekend = currentDay >= 4;
 
-    // 1. Entertainment/Recreation Analysis
-    const entSpent = catTotals.entertainment || 0;
-    const entBudget = parseFloat(budgets.entertainment) || 1;
-    const entRatio = (entSpent / entBudget) * 100;
-
-    if (entRatio >= 90) {
-      insights.push({
-        id: 'ent-critical',
-        type: 'urgent',
-        badge: '🚨 Recreation Alert',
-        title: `Entertainment/Recreation Reaching Limit (${Math.round(entRatio)}%)`,
-        body: 'Recreation expenses are high this week. Check out free campus movie screenings, sports complex events, and hostel game nights this weekend!',
-        category: 'entertainment',
-        priority: 1
-      });
-    } else if (entRatio >= 70 && isApproachingWeekend) {
-      insights.push({
-        id: 'ent-weekend',
-        type: 'weekend',
-        badge: '🍿 Weekend Caution',
-        title: 'Pace Weekend Recreation',
-        body: `You have ${currency}${(entBudget - entSpent).toFixed(0)} left for entertainment. Plan pocket-friendly campus outings to avoid exceeding your target.`,
-        category: 'entertainment',
-        priority: 2
-      });
-    } else if (entRatio < 40 && currentDay >= 3) {
-      insights.push({
-        id: 'ent-good',
-        type: 'savings',
-        badge: '🏆 Smart Pacing',
-        title: 'Recreation Well Under Budget',
-        body: 'Great discipline keeping outings and recreational spending controlled mid-week! Room for weekend fun.',
-        category: 'entertainment',
-        priority: 3
-      });
-    }
-
-    // 2. Food Analysis
+    // 1. Food Analysis
     const foodSpent = catTotals.food || 0;
     const foodBudget = parseFloat(budgets.food) || 1;
     const foodRatio = (foodSpent / foodBudget) * 100;
@@ -80,17 +43,18 @@ const CampusInsights = {
       });
     }
 
-    // 3. Clothes & Necessities
-    const clothSpent = catTotals.clothes || 0;
-    const clothBudget = parseFloat(budgets.clothes) || 1;
-    if (clothSpent > clothBudget) {
+    // 2. Necessities Analysis
+    const necSpent = catTotals.necessities || 0;
+    const necBudget = parseFloat(budgets.necessities) || 1;
+    const necRatio = (necSpent / necBudget) * 100;
+    if (necRatio >= 90) {
       insights.push({
-        id: 'cloth-over',
+        id: 'nec-alert',
         type: 'urgent',
-        badge: '👕 Wardrobe Spending Alert',
-        title: 'Clothes Over Allotted Limit',
-        body: `Clothing purchases exceeded allotment by ${currency}${(clothSpent - clothBudget).toFixed(0)}. Hold off on further shopping until next week's reset.`,
-        category: 'clothes',
+        badge: '🧼 Necessities Budget Alert',
+        title: 'Necessities Buffer Low',
+        body: `Necessities spending is at ${Math.round(necRatio)}% of budget. Keep room supplies spending minimal.`,
+        category: 'necessities',
         priority: 2
       });
     }

@@ -11,10 +11,7 @@ const STORAGE_KEY = 'campuscoin_student_finance_v6';
 
 const CATEGORIES = [
   { id: 'food', name: 'Food', emoji: '🍛', defaultPct: 0.24 },
-  { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 },
-  { id: 'clothes', name: 'Clothes', emoji: '👕', defaultBudget: 0, collapsible: true },
-  { id: 'entertainment', name: 'Entertainment/Recreation', emoji: '🍿', defaultBudget: 0, collapsible: true },
-  { id: 'other', name: 'Other', emoji: '📦', defaultBudget: 0, collapsible: true }
+  { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 }
 ];
 
 const DAYS_OF_WEEK = [
@@ -32,10 +29,7 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
   for (let d = 0; d < 7; d++) {
     dailyMatrix[d] = {
       food: { items: [] },
-      necessities: { items: [] },
-      clothes: { items: [] },
-      entertainment: { items: [] },
-      other: { items: [] }
+      necessities: { items: [] }
     };
   }
 
@@ -45,10 +39,7 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
 
   const allottedBudgets = {
     food: foodBudget,
-    necessities: necessitiesBudget,
-    clothes: 0,
-    entertainment: 0,
-    other: 0
+    necessities: necessitiesBudget
   };
 
   return {
@@ -59,11 +50,6 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
     allottedBudgets,
     dailySpends: dailyMatrix,
     surprises: [],
-    collapsedColumns: {
-      clothes: true,
-      entertainment: true,
-      other: true
-    },
     finalized: false,
     finalizedAt: null
   };
@@ -76,37 +62,25 @@ function getSampleState() {
   // Sunday
   initialWeek.dailySpends[0] = {
     food: { items: [{ id: '101', name: 'Kurkure & Snacks', amount: 20, isBorrowed: false }, { id: '102', name: 'Cafeteria Lunch', amount: 160, isBorrowed: false }, { id: '103', name: 'Evening Chai', amount: 20, isBorrowed: false }] },
-    necessities: { items: [{ id: '104', name: 'Laundry Detergent', amount: 150, isBorrowed: false }] },
-    clothes: { items: [] },
-    entertainment: { items: [] },
-    other: { items: [] }
+    necessities: { items: [{ id: '104', name: 'Laundry Detergent', amount: 150, isBorrowed: false }] }
   };
 
   // Monday
   initialWeek.dailySpends[1] = {
     food: { items: [{ id: '201', name: 'Lunch Thali', amount: 180, isBorrowed: false }, { id: '202', name: 'Fruit Juice', amount: 60, isBorrowed: false }] },
-    necessities: { items: [] },
-    clothes: { items: [] },
-    entertainment: { items: [] },
-    other: { items: [] }
+    necessities: { items: [] }
   };
 
   // Tuesday
   initialWeek.dailySpends[2] = {
     food: { items: [{ id: '301', name: 'Hostel Breakfast', amount: 80, isBorrowed: false }, { id: '302', name: 'Evening Tea', amount: 20, isBorrowed: false }] },
-    necessities: { items: [{ id: '303', name: 'Pharmacy supplies', amount: 220, isBorrowed: false }] },
-    clothes: { items: [] },
-    entertainment: { items: [] },
-    other: { items: [] }
+    necessities: { items: [{ id: '303', name: 'Pharmacy supplies', amount: 220, isBorrowed: false }] }
   };
 
   // Wednesday (Today)
   initialWeek.dailySpends[3] = {
     food: { items: [{ id: '401', name: 'Kurkure & Biscuits', amount: 30, isBorrowed: false }, { id: '402', name: 'Canteen Coffee', amount: 40, isBorrowed: false }] },
-    necessities: { items: [] },
-    clothes: { items: [] },
-    entertainment: { items: [] },
-    other: { items: [] }
+    necessities: { items: [] }
   };
 
   // Surprises
@@ -125,8 +99,8 @@ function getSampleState() {
   const pastWeek1 = createEmptyWeek('2026-W32', 'Week 32 (Aug 03 – Aug 09)', '2026-08-03', 8000);
   pastWeek1.allottedBudgets.food = 1920;
   pastWeek1.allottedBudgets.necessities = 6080;
-  pastWeek1.dailySpends[0] = { food: { items: [{ id: 'p1', name: 'Mess dinner', amount: 350, isBorrowed: false }] }, necessities: { items: [{ id: 'p2', name: 'Dorm supplies', amount: 300, isBorrowed: false }] }, clothes: { items: [] }, entertainment: { items: [] }, other: { items: [] } };
-  pastWeek1.dailySpends[2] = { food: { items: [{ id: 'p3', name: 'Canteen lunch', amount: 240, isBorrowed: false }] }, necessities: { items: [] }, clothes: { items: [] }, entertainment: { items: [] }, other: { items: [] } };
+  pastWeek1.dailySpends[0] = { food: { items: [{ id: 'p1', name: 'Mess dinner', amount: 350, isBorrowed: false }] }, necessities: { items: [{ id: 'p2', name: 'Dorm supplies', amount: 300, isBorrowed: false }] } };
+  pastWeek1.dailySpends[2] = { food: { items: [{ id: 'p3', name: 'Canteen lunch', amount: 240, isBorrowed: false }] }, necessities: { items: [] } };
   pastWeek1.finalized = true;
   pastWeek1.finalizedAt = '2026-08-09T23:59:59Z';
 
@@ -268,9 +242,6 @@ class StateManager {
     if (!week.allottedBudgets) week.allottedBudgets = {};
     week.allottedBudgets.food = foodBudget;
     week.allottedBudgets.necessities = necessitiesBudget;
-    week.allottedBudgets.clothes = 0;
-    week.allottedBudgets.entertainment = 0;
-    week.allottedBudgets.other = 0;
 
     this.saveToStorage(this.state);
   }

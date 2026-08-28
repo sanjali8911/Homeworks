@@ -190,17 +190,7 @@
           <div class="planner-card-header">
             <div>
               <h2 class="card-headline">Weekly Expense Planner</h2>
-              <p class="card-subhead">Zero-sum balance. 24% auto-allotted to Food, 76% to Necessities. Borrowing updates limits live.</p>
-            </div>
-            <div class="planner-header-actions">
-              <button id="add-surprise-quick-btn" class="btn-subtle btn-surprise-trigger">
-                <i data-lucide="alert-circle"></i>
-                <span>Log Surprise Anomaly</span>
-              </button>
-              <button id="reset-week-btn" class="btn-ghost-danger" title="Clear current week entries">
-                <i data-lucide="rotate-ccw"></i>
-                <span>Reset</span>
-              </button>
+              <p class="card-subhead">Zero-sum balance. 24% auto-allotted to Food, 76% to Necessities. Live allowance tracking.</p>
             </div>
           </div>
 
@@ -215,33 +205,6 @@
                   </th>
                   <th class="col-cat cat-necessities" id="th-cat-necessities">
                     <div class="th-cat"><span>🧼</span> Necessities <small class="pct-sub">(76%)</small></div>
-                  </th>
-                  
-                  <!-- Collapsible Clothes Column -->
-                  <th class="col-cat cat-clothes" id="th-cat-clothes" title="Click to expand/collapse Clothes column">
-                    <div class="th-cat-collapsible">
-                      <span class="cat-icon-col">👕</span>
-                      <span class="cat-label-col">Clothes</span>
-                      <button class="btn-col-toggle" id="toggle-col-clothes" title="Toggle Clothes column">+</button>
-                    </div>
-                  </th>
-
-                  <!-- Collapsible Entertainment/Recreation Column -->
-                  <th class="col-cat cat-entertainment" id="th-cat-entertainment" title="Click to expand/collapse Recreation column">
-                    <div class="th-cat-collapsible">
-                      <span class="cat-icon-col">🍿</span>
-                      <span class="cat-label-col">Recreation</span>
-                      <button class="btn-col-toggle" id="toggle-col-entertainment" title="Toggle Recreation column">+</button>
-                    </div>
-                  </th>
-
-                  <!-- Collapsible Other Column -->
-                  <th class="col-cat cat-other" id="th-cat-other" title="Click to expand/collapse Other column">
-                    <div class="th-cat-collapsible">
-                      <span class="cat-icon-col">📦</span>
-                      <span class="cat-label-col">Other</span>
-                      <button class="btn-col-toggle" id="toggle-col-other" title="Toggle Other column">+</button>
-                    </div>
                   </th>
                   <th class="col-total"><div class="th-cat"><span>⚡</span> Daily Total</div></th>
                 </tr>
@@ -268,24 +231,6 @@
                       <input type="number" class="budget-input" data-cat="necessities" placeholder="0" value="5700" title="76% of Starting Cash" />
                     </div>
                   </td>
-                  <td class="cell-budget-input cell-col-clothes">
-                    <div class="budget-input-box">
-                      <span class="curr-sign">₹</span>
-                      <input type="number" class="budget-input" data-cat="clothes" placeholder="0" value="0" />
-                    </div>
-                  </td>
-                  <td class="cell-budget-input cell-col-entertainment">
-                    <div class="budget-input-box">
-                      <span class="curr-sign">₹</span>
-                      <input type="number" class="budget-input" data-cat="entertainment" placeholder="0" value="0" />
-                    </div>
-                  </td>
-                  <td class="cell-budget-input cell-col-other">
-                    <div class="budget-input-box">
-                      <span class="curr-sign">₹</span>
-                      <input type="number" class="budget-input" data-cat="other" placeholder="0" value="0" />
-                    </div>
-                  </td>
                   <td class="cell-budget-total">
                     <div class="total-target-display">
                       <span class="curr-sign">₹</span>
@@ -308,15 +253,6 @@
                   <td class="cell-balance-cat cell-col-necessities">
                     <div class="bal-box"><span id="bal-necessities" class="bal-badge pos">+₹0</span></div>
                   </td>
-                  <td class="cell-balance-cat cell-col-clothes">
-                    <div class="bal-box"><span id="bal-clothes" class="bal-badge pos">+₹0</span></div>
-                  </td>
-                  <td class="cell-balance-cat cell-col-entertainment">
-                    <div class="bal-box"><span id="bal-entertainment" class="bal-badge pos">+₹0</span></div>
-                  </td>
-                  <td class="cell-balance-cat cell-col-other">
-                    <div class="bal-box"><span id="bal-other" class="bal-badge pos">+₹0</span></div>
-                  </td>
                   <td class="cell-balance-total">
                     <div class="bal-total-display">
                       <span id="bal-total-sum" class="bal-badge-total pos">+₹0</span>
@@ -330,9 +266,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Sunday</span><span class="day-sub" id="date-day-0">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="0" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="0" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="0" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="0" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="0" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-0">₹0</span></td>
                 </tr>
 
@@ -341,9 +274,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Monday</span><span class="day-sub" id="date-day-1">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="1" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="1" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="1" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="1" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="1" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-1">₹0</span></td>
                 </tr>
 
@@ -352,9 +282,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Tuesday</span><span class="day-sub" id="date-day-2">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="2" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="2" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="2" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="2" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="2" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-2">₹0</span></td>
                 </tr>
 
@@ -363,9 +290,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Wednesday</span><span class="day-sub" id="date-day-3">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="3" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="3" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="3" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="3" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="3" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-3">₹0</span></td>
                 </tr>
 
@@ -374,9 +298,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Thursday</span><span class="day-sub" id="date-day-4">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="4" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="4" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="4" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="4" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="4" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-4">₹0</span></td>
                 </tr>
 
@@ -385,9 +306,6 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Friday</span><span class="day-sub" id="date-day-5">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="5" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="5" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="5" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="5" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="5" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-5">₹0</span></td>
                 </tr>
 
@@ -396,24 +314,21 @@
                   <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Saturday</span><span class="day-sub" id="date-day-6">--</span></div></td>
                   <td class="cell-spend cell-col-food" data-day="6" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="6" data-cat="necessities"></td>
-                  <td class="cell-spend cell-col-clothes" data-day="6" data-cat="clothes"></td>
-                  <td class="cell-spend cell-col-entertainment" data-day="6" data-cat="entertainment"></td>
-                  <td class="cell-spend cell-col-other" data-day="6" data-cat="other"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-6">₹0</span></td>
                 </tr>
 
-                <!-- 4. Surprises / Unexpected Tracker Row -->
+                <!-- 4. Surprises / Unexpected Tracker Row (Log Surprise Anomaly) -->
                 <tr class="row-surprises-section" id="row-surprises">
                   <td class="sticky-cell row-header-cell">
                     <div class="surprise-header-cell">
                       <div class="surprise-title-text">
-                        <strong>Surprises & Unexpected</strong>
-                        <small>Anomaly Tracker</small>
+                        <strong>Log Surprise Anomaly</strong>
+                        <small>Deducts from Necessities</small>
                       </div>
-                      <button id="add-surprise-row-btn" class="btn-circle-add" title="Add surprise anomaly">+</button>
+                      <button id="add-surprise-row-btn" class="btn-circle-add" title="Log Surprise Anomaly" aria-label="Log Surprise Anomaly">+</button>
                     </div>
                   </td>
-                  <td colspan="5" class="cell-surprise-tags">
+                  <td colspan="2" class="cell-surprise-tags">
                     <div class="surprise-tags-flow" id="surprise-tags-container">
                       <span class="empty-hint">No surprise anomalies logged. Click + to add.</span>
                     </div>
@@ -443,24 +358,6 @@
                       <span class="cat-pct-badge" id="pct-necessities">0%</span>
                     </div>
                   </td>
-                  <td class="cell-summary-cat cell-col-clothes" data-category="clothes">
-                    <div class="cat-stat-chip" id="sum-box-clothes">
-                      <span class="cat-spent-val" id="col-total-clothes">₹0</span>
-                      <span class="cat-pct-badge" id="pct-clothes">0%</span>
-                    </div>
-                  </td>
-                  <td class="cell-summary-cat cell-col-entertainment" data-category="entertainment">
-                    <div class="cat-stat-chip" id="sum-box-entertainment">
-                      <span class="cat-spent-val" id="col-total-entertainment">₹0</span>
-                      <span class="cat-pct-badge" id="pct-entertainment">0%</span>
-                    </div>
-                  </td>
-                  <td class="cell-summary-cat cell-col-other" data-category="other">
-                    <div class="cat-stat-chip" id="sum-box-other">
-                      <span class="cat-spent-val" id="col-total-other">₹0</span>
-                      <span class="cat-pct-badge" id="pct-other">0%</span>
-                    </div>
-                  </td>
                   <td class="cell-grand-spent">
                     <div class="grand-spent-box">
                       <span class="grand-sub">Net Spent</span>
@@ -476,9 +373,6 @@
                   </td>
                   <td class="cell-rem-cat cell-col-food" data-category="food"><span id="rem-food" class="rem-badge pos">+₹0</span></td>
                   <td class="cell-rem-cat cell-col-necessities" data-category="necessities"><span id="rem-necessities" class="rem-badge pos">+₹0</span></td>
-                  <td class="cell-rem-cat cell-col-clothes" data-category="clothes"><span id="rem-clothes" class="rem-badge pos">+₹0</span></td>
-                  <td class="cell-rem-cat cell-col-entertainment" data-category="entertainment"><span id="rem-entertainment" class="rem-badge pos">+₹0</span></td>
-                  <td class="cell-rem-cat cell-col-other" data-category="other"><span id="rem-other" class="rem-badge pos">+₹0</span></td>
                   <td class="cell-grand-rem">
                     <span id="grand-total-remaining" class="grand-rem-badge pos">+₹0</span>
                   </td>
@@ -494,10 +388,16 @@
               <i data-lucide="check-circle" class="sync-ok-icon"></i>
               <span>Zero-Sum Auto-saved to localStorage</span>
             </div>
-            <button id="finalize-week-btn" class="btn-pill-action">
-              <i data-lucide="archive"></i>
-              <span>Finalize & Archive to Monthly Book</span>
-            </button>
+            <div class="table-footer-actions">
+              <button id="reset-week-btn" class="btn-ghost-danger" title="Clear current week entries">
+                <i data-lucide="rotate-ccw"></i>
+                <span>Reset</span>
+              </button>
+              <button id="finalize-week-btn" class="btn-pill-action">
+                <i data-lucide="archive"></i>
+                <span>Finalize & Archive to Monthly Book</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -783,9 +683,6 @@
             <select id="cell-modal-cat-select" class="form-select" required>
               <option value="food">🍛 Food (24% target)</option>
               <option value="necessities">🧼 Necessities (76% target)</option>
-              <option value="clothes">👕 Clothes (0% target)</option>
-              <option value="entertainment">🍿 Entertainment/Recreation (0%)</option>
-              <option value="other">📦 Other (0%)</option>
             </select>
           </div>
         </div>
@@ -924,9 +821,6 @@
             <select id="quick-cat-select" class="form-select" required>
               <option value="food">🍛 Food (24% target)</option>
               <option value="necessities">🧼 Necessities (76% target)</option>
-              <option value="clothes">👕 Clothes (0% target)</option>
-              <option value="entertainment">🍿 Entertainment/Recreation (0%)</option>
-              <option value="other">📦 Other (0%)</option>
             </select>
           </div>
         </div>

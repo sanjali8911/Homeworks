@@ -33,10 +33,7 @@ const CampusCalculator = {
   getCategoryTotals(week) {
     const totals = {
       food: 0,
-      necessities: 0,
-      clothes: 0,
-      entertainment: 0,
-      other: 0
+      necessities: 0
     };
 
     if (!week || !week.dailySpends) return totals;
@@ -269,10 +266,7 @@ const CampusCalculator = {
     let totalSurprises = 0;
     const categoryTotals = {
       food: 0,
-      necessities: 0,
-      clothes: 0,
-      entertainment: 0,
-      other: 0
+      necessities: 0
     };
 
     const weekRows = [];

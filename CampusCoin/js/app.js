@@ -37,7 +37,6 @@ function initApp() {
   setupTodoWidget();
   setupCampusAIDrawer();
   setupCalendarPopover();
-  setupColumnCollapsers();
   setupBorrowingModal();
 }
 
@@ -272,37 +271,14 @@ function renderBudgetVelocityMeter(week, currency) {
 }
 
 /**
- * 4. Main Weekly Table with Live Balance Row & Collapsible Columns (Clothes, Recreation, Other)
+ * 4. Main Weekly Table with Live Balance Row & Zero-Sum Budgeting
  */
 function renderWeeklyTable(week, currency) {
-  const collapsedState = week.collapsedColumns || { clothes: true, entertainment: true, other: true };
-
-  // Apply column collapse classes to headers
-  ['clothes', 'entertainment', 'other'].forEach(catId => {
-    const th = document.getElementById(`th-cat-${catId}`);
-    const toggleBtn = document.getElementById(`toggle-col-${catId}`);
-    const isColCollapsed = collapsedState[catId] === true;
-
-    if (th) {
-      if (isColCollapsed) th.classList.add('col-collapsed');
-      else th.classList.remove('col-collapsed');
-    }
-    if (toggleBtn) {
-      toggleBtn.textContent = isColCollapsed ? '+' : '−';
-    }
-  });
-
   // 1. Budget Inputs (Top Row)
   CATEGORIES.forEach(cat => {
     const input = document.querySelector(`.budget-input[data-cat="${cat.id}"]`);
     if (input && document.activeElement !== input) {
       input.value = (parseFloat(week.allottedBudgets[cat.id]) || 0).toFixed(0);
-    }
-
-    const budgetCell = document.querySelector(`.cell-col-${cat.id}`);
-    if (budgetCell) {
-      if (collapsedState[cat.id]) budgetCell.classList.add('cell-col-collapsed');
-      else budgetCell.classList.remove('cell-col-collapsed');
     }
   });
 
@@ -316,12 +292,6 @@ function renderWeeklyTable(week, currency) {
   CATEGORIES.forEach(cat => {
     const balVal = balances[cat.id] || 0;
     const balEl = document.getElementById(`bal-${cat.id}`);
-    const balCell = document.querySelector(`.cell-balance-cat.cell-col-${cat.id}`);
-
-    if (balCell) {
-      if (collapsedState[cat.id]) balCell.classList.add('cell-col-collapsed');
-      else balCell.classList.remove('cell-col-collapsed');
-    }
 
     if (balEl) {
       if (balVal >= 0) {
@@ -354,40 +324,29 @@ function renderWeeklyTable(week, currency) {
       const cell = document.querySelector(`.cell-spend[data-day="${d}"][data-cat="${cat.id}"]`);
       if (!cell) return;
 
-      const isCollapsed = collapsedState[cat.id] === true;
       const cellObj = dayData[cat.id];
       const items = CampusCalculator.getSpendItems(cellObj);
       const totalAmt = CampusCalculator.getSpendAmount(cellObj);
 
-      if (isCollapsed) {
-        cell.classList.add('cell-col-collapsed');
-        cell.innerHTML = `
-          <div class="cell-collapsed-tag" data-day="${d}" data-cat="${cat.id}" title="${cat.name}: ${currency}${totalAmt}. Click to manage.">
-            <span>${totalAmt > 0 ? `${currency}${totalAmt.toFixed(0)}` : '+'}</span>
-          </div>
-        `;
-      } else {
-        cell.classList.remove('cell-col-collapsed');
-        let tagsHtml = '';
-        if (items.length > 0) {
-          tagsHtml = items.map(it => `
-            <span class="cell-tag-item ${it.isBorrowed ? 'borrowed-item' : ''}" title="${it.isBorrowed ? 'Funded via borrowing from Necessities' : ''}">
-              ${it.name}: ${currency}${it.amount}${it.isBorrowed ? ' ⚡' : ''}
-            </span>
-          `).join('');
-        }
-
-        cell.innerHTML = `
-          <div class="cell-itemized-box" data-day="${d}" data-cat="${cat.id}" title="Click to manage items in this cell">
-            <div class="cell-sum-header">
-              <span class="cell-total-text">${currency}${totalAmt > 0 ? totalAmt.toFixed(0) : '0'}</span>
-              <span class="cell-item-count">${items.length > 0 ? `${items.length} items` : ''}</span>
-            </div>
-            <div class="cell-items-tag-cloud">${tagsHtml}</div>
-            <button class="cell-add-btn-mini" data-day="${d}" data-cat="${cat.id}">+ Add item</button>
-          </div>
-        `;
+      let tagsHtml = '';
+      if (items.length > 0) {
+        tagsHtml = items.map(it => `
+          <span class="cell-tag-item ${it.isBorrowed ? 'borrowed-item' : ''}" title="${it.isBorrowed ? 'Funded via borrowing from Necessities' : ''}">
+            ${it.name}: ${currency}${it.amount}${it.isBorrowed ? ' ⚡' : ''}
+          </span>
+        `).join('');
       }
+
+      cell.innerHTML = `
+        <div class="cell-itemized-box" data-day="${d}" data-cat="${cat.id}" title="Click to manage items in this cell">
+          <div class="cell-sum-header">
+            <span class="cell-total-text">${currency}${totalAmt > 0 ? totalAmt.toFixed(0) : '0'}</span>
+            <span class="cell-item-count">${items.length > 0 ? `${items.length} items` : ''}</span>
+          </div>
+          <div class="cell-items-tag-cloud">${tagsHtml}</div>
+          <button class="cell-add-btn-mini" data-day="${d}" data-cat="${cat.id}">+ Add item</button>
+        </div>
+      `;
     });
 
     const dailyTotalEl = document.getElementById(`daily-total-${d}`);
@@ -396,8 +355,8 @@ function renderWeeklyTable(week, currency) {
     }
   }
 
-  // Attach click listeners to itemized cell boxes & collapsed tags
-  document.querySelectorAll('.cell-itemized-box, .cell-add-btn-mini, .cell-collapsed-tag').forEach(el => {
+  // Attach click listeners to itemized cell boxes
+  document.querySelectorAll('.cell-itemized-box, .cell-add-btn-mini').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const day = parseInt(el.getAttribute('data-day'), 10);
@@ -406,7 +365,7 @@ function renderWeeklyTable(week, currency) {
     });
   });
 
-  // Surprises Row
+  // Surprises Row (Log Surprise Anomaly)
   renderSurprisesList(week, currency);
 
   // Category Total Spent Summary Row
@@ -422,12 +381,6 @@ function renderWeeklyTable(week, currency) {
     const totalEl = document.getElementById(`col-total-${cat.id}`);
     const pctEl = document.getElementById(`pct-${cat.id}`);
     const boxEl = document.getElementById(`sum-box-${cat.id}`);
-    const summaryCell = document.querySelector(`.cell-summary-cat.cell-col-${cat.id}`);
-
-    if (summaryCell) {
-      if (collapsedState[cat.id]) summaryCell.classList.add('cell-col-collapsed');
-      else summaryCell.classList.remove('cell-col-collapsed');
-    }
 
     if (totalEl) totalEl.textContent = `${currency}${totalSpent.toFixed(0)}`;
     if (pctEl) pctEl.textContent = `${traffic.pct}%`;
@@ -438,12 +391,6 @@ function renderWeeklyTable(week, currency) {
 
     const remVal = budget - totalSpent;
     const remEl = document.getElementById(`rem-${cat.id}`);
-    const remCell = document.querySelector(`.cell-rem-cat.cell-col-${cat.id}`);
-
-    if (remCell) {
-      if (collapsedState[cat.id]) remCell.classList.add('cell-col-collapsed');
-      else remCell.classList.remove('cell-col-collapsed');
-    }
 
     if (remEl) {
       if (remVal >= 0) {
@@ -471,24 +418,6 @@ function renderWeeklyTable(week, currency) {
       grandRemEl.className = 'grand-rem-badge neg';
     }
   }
-}
-
-/**
- * Setup Column Expand / Collapse buttons for Clothes, Recreation, and Other
- */
-function setupColumnCollapsers() {
-  ['clothes', 'entertainment', 'other'].forEach(catId => {
-    const toggleBtn = document.getElementById(`toggle-col-${catId}`);
-    const th = document.getElementById(`th-cat-${catId}`);
-
-    const toggleAction = (e) => {
-      e.stopPropagation();
-      CampusState.toggleColumnCollapse(catId);
-    };
-
-    if (toggleBtn) toggleBtn.addEventListener('click', toggleAction);
-    if (th) th.addEventListener('click', toggleAction);
-  });
 }
 
 /**
@@ -859,8 +788,8 @@ function generateCampusAIResponse(userQuery) {
 
   if (text.includes('food') || text.includes('mess') || text.includes('canteen')) {
     reply = `🍕 Your 24% Food target is ${currency}${week.allottedBudgets.food}. Utilizing hostel dining options keeps your daily spend well within limits!`;
-  } else if (text.includes('clothes') || text.includes('recreation') || text.includes('other')) {
-    reply = `👕 Clothes, Recreation, and Other start with ₹0 allotted budget. Use the zero-sum fund borrowing prompt to borrow surplus from Necessities when making a purchase!`;
+  } else if (text.includes('necessit') || text.includes('supplies')) {
+    reply = `🧼 Necessities receives 76% of starting cash (${currency}${week.allottedBudgets.necessities}). Any surprise anomalies are safely absorbed from here!`;
   }
 
   appendCampusAIBotMessage(reply);

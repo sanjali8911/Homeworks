@@ -175,13 +175,10 @@ const CampusCharts = {
     const labels = CATEGORIES.map(c => c.name);
     const data = CATEGORIES.map(c => catTotals[c.id] || 0);
 
-    // Google Calendar soft event palette
+    // Google Calendar soft event palette for Food & Necessities
     const colors = [
       '#4285f4', // Food (Blue)
-      '#34a853', // Necessities (Green)
-      '#fbbc04', // Clothes (Yellow/Tangerine)
-      '#ea4335', // Entertainment/Recreation (Red/Flamingo)
-      '#a142f4'  // Other (Purple/Lavender)
+      '#34a853'  // Necessities (Green)
     ];
 
     if (this.monthlyCategoryChart) {

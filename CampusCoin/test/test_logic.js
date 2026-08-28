@@ -26,10 +26,7 @@ global.CampusCalculator = window.CampusCalculator;
 global.CampusInsights = window.CampusInsights;
 global.CATEGORIES = [
   { id: 'food', name: 'Food', emoji: '🍛', defaultPct: 0.24 },
-  { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 },
-  { id: 'clothes', name: 'Clothes', emoji: '👕', defaultBudget: 0, collapsible: true },
-  { id: 'entertainment', name: 'Entertainment/Recreation', emoji: '🍿', defaultBudget: 0, collapsible: true },
-  { id: 'other', name: 'Other', emoji: '📦', defaultBudget: 0, collapsible: true }
+  { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 }
 ];
 global.DAYS_OF_WEEK = [
   { index: 0, name: 'Sunday', short: 'Sun' },
@@ -41,42 +38,35 @@ global.DAYS_OF_WEEK = [
   { index: 6, name: 'Saturday', short: 'Sat' }
 ];
 
-console.log('=== RUNNING CAMPUSCOIN V6.1 ZERO-SUM & DYNAMIC DATE TESTS ===\n');
+console.log('=== RUNNING CAMPUSCOIN V6.2 ZERO-SUM & TWO-CATEGORY TESTS ===\n');
 
-// Test 1: Starting Cash = 7500 -> Food = 1800, Necessities = 5700, Clothes = 0
+// Test 1: Starting Cash = 7500 -> Food = 1800 (24%), Necessities = 5700 (76%)
 CampusState.updateStartingBalance(7500);
 let week = CampusState.getActiveWeek();
 console.assert(week.allottedBudgets.food === 1800, 'Food 24% of 7500 is 1800');
 console.assert(week.allottedBudgets.necessities === 5700, 'Necessities 76% of 7500 is 5700');
-console.assert(week.allottedBudgets.clothes === 0, 'Clothes is 0');
-console.log(`✓ Initial State: Starting Cash ₹7,500 -> Food ₹1,800, Necessities ₹5,700, Clothes ₹0`);
+console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Total Allotted matches 7500');
+console.log(`✓ Initial State: Starting Cash ₹7,500 -> Food ₹1,800, Necessities ₹5,700`);
 
-// Test 2: User changes Clothes allotted limit to 218 -> Must borrow 218 from Necessities!
-console.log('Test 2: User changes Clothes Allotted Limit to 218');
+// Test 2: User changes Food allotted limit to 2200 -> Must borrow 400 from Necessities!
+console.log('Test 2: User changes Food Allotted Limit to 2200');
 const oldNec = week.allottedBudgets.necessities;
-CampusState.borrowFunds('necessities', 'clothes', 218);
+CampusState.borrowFunds('necessities', 'food', 400);
 week = CampusState.getActiveWeek();
-console.assert(week.allottedBudgets.clothes === 218, 'Clothes should now be 218');
-console.assert(week.allottedBudgets.necessities === oldNec - 218, `Necessities should decrease by 218 to ${oldNec - 218}`);
+console.assert(week.allottedBudgets.food === 2200, 'Food should now be 2200');
+console.assert(week.allottedBudgets.necessities === oldNec - 400, `Necessities should decrease by 400 to ${oldNec - 400}`);
 console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Zero-sum strictly preserved at 7500');
-console.log(`✓ Zero-Sum Allotted Limit Change: Necessities ₹${week.allottedBudgets.necessities}, Clothes ₹${week.allottedBudgets.clothes}. Sum = ₹${CampusCalculator.getTotalAllottedBudget(week)}\n`);
+console.log(`✓ Zero-Sum Allotted Limit Change: Necessities ₹${week.allottedBudgets.necessities}, Food ₹${week.allottedBudgets.food}. Sum = ₹${CampusCalculator.getTotalAllottedBudget(week)}\n`);
 
-// Test 3: Adding item into Wednesday Clothes Cell (Day 3)
-console.log('Test 3: Adding Item into Wednesday Clothes Cell (Day 3)');
-// If user adds an item of 300 to Clothes (when budget is 218, deficit is 82)
-const avail = CampusCalculator.checkBudgetAvailability(week, 'clothes', 300);
-console.assert(avail.fits === false, '300 should exceed 218 budget');
-console.assert(avail.deficit === 82, `Deficit should be 82, got ${avail.deficit}`);
-
-// Borrow the deficit of 82 from Necessities
-CampusState.borrowFunds('necessities', 'clothes', 82);
-const wedItem = CampusState.addItemToCell(3, 'clothes', 'Winter Jacket', 300, true);
+// Test 3: Adding item into Wednesday Food Cell (Day 3)
+console.log('Test 3: Adding Item into Wednesday Food Cell (Day 3)');
+const foodBefore = CampusCalculator.getCategoryTotals(week).food;
+const wedItem = CampusState.addItemToCell(3, 'food', 'Special Canteen Meal', 300, false);
 week = CampusState.getActiveWeek();
-
-console.assert(week.allottedBudgets.clothes === 300, 'Clothes budget updated to 300');
-console.assert(wedItem.isBorrowed === true, 'Item tagged as borrowed (rendered in RED)');
+console.assert(wedItem.name === 'Special Canteen Meal', 'Item name matches');
+console.assert(CampusCalculator.getCategoryTotals(week).food === foodBefore + 300, 'Food spent increased by 300');
 console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Zero-sum preserved at 7500');
-console.log(`✓ Item logged in Wednesday Clothes cell: ₹300, isBorrowed=true (RED). Total Allotted sum = ₹7,500\n`);
+console.log(`✓ Item logged in Wednesday Food cell: ₹300. Total Allotted sum = ₹7,500\n`);
 
 // Test 4: Dynamic date computation verification
 console.log('Test 4: Dynamic Date Computation');

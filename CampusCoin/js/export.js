@@ -26,7 +26,7 @@ const CampusExport = {
     csvContent += `Grand Total Spent,${currency}${grandSpent.toFixed(2)}\r\n\r\n`;
 
     // Table Header
-    const headers = ['Day / Category', 'Food', 'Necessities', 'Clothes', 'Entertainment/Recreation', 'Other', 'Daily Total'];
+    const headers = ['Day / Category', 'Food', 'Necessities', 'Daily Total'];
     csvContent += headers.map(h => `"${h}"`).join(',') + '\r\n';
 
     // Budget Limit Row
@@ -34,9 +34,6 @@ const CampusExport = {
       'Allotted Limit',
       (week.allottedBudgets.food || 0).toFixed(2),
       (week.allottedBudgets.necessities || 0).toFixed(2),
-      (week.allottedBudgets.clothes || 0).toFixed(2),
-      (week.allottedBudgets.entertainment || 0).toFixed(2),
-      (week.allottedBudgets.other || 0).toFixed(2),
       allottedTotal.toFixed(2)
     ];
     csvContent += budgetRow.map(v => `"${v}"`).join(',') + '\r\n';
@@ -56,9 +53,6 @@ const CampusExport = {
         DAYS_OF_WEEK[d].name,
         formatCell('food'),
         formatCell('necessities'),
-        formatCell('clothes'),
-        formatCell('entertainment'),
-        formatCell('other'),
         dailyTotals[d].toFixed(2)
       ];
       csvContent += row.map(v => `"${v}"`).join(',') + '\r\n';
@@ -69,22 +63,16 @@ const CampusExport = {
       'Total Spent',
       catTotals.food.toFixed(2),
       catTotals.necessities.toFixed(2),
-      catTotals.clothes.toFixed(2),
-      catTotals.entertainment.toFixed(2),
-      catTotals.other.toFixed(2),
       (grandSpent - surprises).toFixed(2)
     ];
     csvContent += totalSpentRow.map(v => `"${v}"`).join(',') + '\r\n';
 
     // Category Remaining Row
-    const remData = CampusCalculator.getCategoryRemaining(week);
+    const remData = CampusCalculator.getCategoryBalances(week);
     const remRow = [
       'Remaining Allowance',
       remData.food.toFixed(2),
       remData.necessities.toFixed(2),
-      remData.clothes.toFixed(2),
-      remData.entertainment.toFixed(2),
-      remData.other.toFixed(2),
       (allottedTotal - (grandSpent - surprises)).toFixed(2)
     ];
     csvContent += remRow.map(v => `"${v}"`).join(',') + '\r\n\r\n';
@@ -179,13 +167,10 @@ const CampusExport = {
         doc.setFillColor(241, 245, 249);
         doc.rect(15, startY, 180, 7, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.text('Day', 18, startY + 5);
-        doc.text('Food', 45, startY + 5);
-        doc.text('Necess.', 75, startY + 5);
-        doc.text('Clothes', 105, startY + 5);
-        doc.text('Entertain.', 135, startY + 5);
-        doc.text('Other', 165, startY + 5);
-        doc.text('Daily Total', 180, startY + 5);
+        doc.text('Day', 20, startY + 5);
+        doc.text('Food (24%)', 65, startY + 5);
+        doc.text('Necessities (76%)', 115, startY + 5);
+        doc.text('Daily Total', 165, startY + 5);
 
         doc.setFont('helvetica', 'normal');
         startY += 8;
@@ -196,14 +181,11 @@ const CampusExport = {
             doc.setFillColor(248, 250, 252);
             doc.rect(15, startY - 1, 180, 6, 'F');
           }
-          doc.text(DAYS_OF_WEEK[d].short, 18, startY + 4);
-          doc.text(`${CampusCalculator.getSpendAmount(dayData.food).toFixed(0)}`, 45, startY + 4);
-          doc.text(`${CampusCalculator.getSpendAmount(dayData.necessities).toFixed(0)}`, 75, startY + 4);
-          doc.text(`${CampusCalculator.getSpendAmount(dayData.clothes).toFixed(0)}`, 105, startY + 4);
-          doc.text(`${CampusCalculator.getSpendAmount(dayData.entertainment).toFixed(0)}`, 135, startY + 4);
-          doc.text(`${CampusCalculator.getSpendAmount(dayData.other).toFixed(0)}`, 165, startY + 4);
+          doc.text(DAYS_OF_WEEK[d].name, 20, startY + 4);
+          doc.text(`${CampusCalculator.getSpendAmount(dayData.food).toFixed(0)}`, 65, startY + 4);
+          doc.text(`${CampusCalculator.getSpendAmount(dayData.necessities).toFixed(0)}`, 115, startY + 4);
           doc.setFont('helvetica', 'bold');
-          doc.text(`${dailyTotals[d].toFixed(0)}`, 180, startY + 4);
+          doc.text(`${dailyTotals[d].toFixed(0)}`, 165, startY + 4);
           doc.setFont('helvetica', 'normal');
           startY += 6.5;
         }
@@ -213,18 +195,15 @@ const CampusExport = {
         doc.setFillColor(241, 245, 249);
         doc.rect(15, startY, 180, 7, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.text('Totals', 18, startY + 5);
-        doc.text(`${catTotals.food.toFixed(0)}`, 45, startY + 5);
-        doc.text(`${catTotals.necessities.toFixed(0)}`, 75, startY + 5);
-        doc.text(`${catTotals.clothes.toFixed(0)}`, 105, startY + 5);
-        doc.text(`${catTotals.entertainment.toFixed(0)}`, 135, startY + 5);
-        doc.text(`${catTotals.other.toFixed(0)}`, 165, startY + 5);
-        doc.text(`${currency}${grandSpent.toFixed(2)}`, 178, startY + 5);
+        doc.text('Totals', 20, startY + 5);
+        doc.text(`${catTotals.food.toFixed(0)}`, 65, startY + 5);
+        doc.text(`${catTotals.necessities.toFixed(0)}`, 115, startY + 5);
+        doc.text(`${currency}${grandSpent.toFixed(2)}`, 165, startY + 5);
 
         // Surprises
         startY += 14;
         doc.setFontSize(9.5);
-        doc.text('Surprises & Unexpected Expenses:', 15, startY);
+        doc.text('Surprise Anomalies:', 15, startY);
         startY += 5;
         doc.setFontSize(8.5);
         doc.setFont('helvetica', 'normal');
