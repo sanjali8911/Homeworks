@@ -16,6 +16,10 @@ const CampusCharts = {
     this.renderDailySpendingChart(week);
     this.renderBudgetVsActualChart(week);
     this.renderMonthlyCategoryChart(state);
+
+    if (this.dailyChart) this.dailyChart.resize();
+    if (this.budgetVsActualChart) this.budgetVsActualChart.resize();
+    if (this.monthlyCategoryChart) this.monthlyCategoryChart.resize();
   },
 
   /**

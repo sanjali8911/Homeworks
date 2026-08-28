@@ -1261,6 +1261,9 @@ function switchTab(tabId) {
   const activeNavBtn = document.querySelector(`.side-nav .nav-item[data-tab="${tabId}"]`);
   if (activeNavBtn) activeNavBtn.classList.add('active');
 
+  const middlePane = document.querySelector('.middle-pane');
+  if (middlePane) middlePane.scrollTop = 0;
+
   if (tabId === 'monthly-tab') {
     renderMonthlyBook(CampusState.state, CampusState.getCurrency());
   } else if (tabId === 'todos-tab') {
@@ -1270,7 +1273,7 @@ function switchTab(tabId) {
   if (tabId === 'monthly-tab' || tabId === 'analytics-tab') {
     setTimeout(() => {
       CampusCharts.updateCharts();
-    }, 100);
+    }, 60);
   }
 }
 
