@@ -205,26 +205,50 @@ const CampusCalculator = {
     const currency = (window.CampusState && window.CampusState.getCurrency) ? window.CampusState.getCurrency() : '₹';
     const now = new Date();
     const currentDayIndex = now.getDay();
-    const daysRemaining = 7 - currentDayIndex;
+    const currentCalWeekId = (typeof getWeekIdentifier === 'function') ? getWeekIdentifier(now) : null;
+    const isPast = currentCalWeekId ? (week.id < currentCalWeekId) : false;
+    const isFuture = currentCalWeekId ? (week.id > currentCalWeekId) : false;
+
+    let daysRemaining = 0;
+    let daysLabel = '0 days left';
+
+    if (isPast) {
+      daysRemaining = 0;
+      daysLabel = '0 days (Concluded)';
+    } else if (isFuture) {
+      daysRemaining = 7;
+      daysLabel = '7 days left';
+    } else {
+      daysRemaining = 7 - currentDayIndex;
+      daysLabel = `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`;
+    }
 
     const startingCash = parseFloat(week.startingBalance) || 0;
     const grandSpent = this.getGrandTotalSpent(week);
     const remainingCash = startingCash - grandSpent;
 
     let safeDailyAllowance = 0;
-    if (remainingCash > 0 && daysRemaining > 0) {
+    if (isPast) {
+      safeDailyAllowance = 0;
+    } else if (remainingCash > 0 && daysRemaining > 0) {
       safeDailyAllowance = remainingCash / daysRemaining;
-    } else if (remainingCash <= 0) {
+    } else {
       safeDailyAllowance = 0;
     }
 
     const dailyTotals = this.getDailyTotals(week);
-    const todaySpent = dailyTotals[currentDayIndex] || 0;
+    const todaySpent = (!isPast && !isFuture) ? (dailyTotals[currentDayIndex] || 0) : 0;
 
     let paceStatus = 'healthy';
-    let paceMessage = `Zero-Sum: ${daysRemaining} days left in the week.`;
+    let paceMessage = '';
 
-    if (remainingCash <= 0) {
+    if (isPast) {
+      paceStatus = 'concluded';
+      paceMessage = `This week has concluded. Finalized ending balance: ${currency}${remainingCash.toFixed(0)}.`;
+    } else if (isFuture) {
+      paceStatus = 'upcoming';
+      paceMessage = `Upcoming week. Baseline allowance: ${currency}${safeDailyAllowance.toFixed(0)}/day across all 7 days.`;
+    } else if (remainingCash <= 0) {
       paceStatus = 'overbudget';
       paceMessage = `Cash reserve depleted by ${currency}${Math.abs(remainingCash).toFixed(0)}. Limit all non-essential spends.`;
     } else if (safeDailyAllowance < 150) {
@@ -232,7 +256,7 @@ const CampusCalculator = {
       paceMessage = `Tight cash reserve (${currency}${safeDailyAllowance.toFixed(0)}/day). Stick to essentials & mess meals.`;
     } else {
       paceStatus = 'healthy';
-      paceMessage = `Dynamic pace: ${currency}${safeDailyAllowance.toFixed(0)}/day remaining across ${daysRemaining} days.`;
+      paceMessage = `Dynamic pace: ${currency}${safeDailyAllowance.toFixed(0)}/day remaining across ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}.`;
     }
 
     return {
@@ -241,6 +265,9 @@ const CampusCalculator = {
       remainingPool: parseFloat(remainingCash.toFixed(2)),
       startingCash,
       daysRemaining,
+      daysLabel,
+      isPast,
+      isFuture,
       currentDayIndex,
       currentDayName: DAYS_OF_WEEK[currentDayIndex].name,
       todaySpent: parseFloat(todaySpent.toFixed(2)),
@@ -252,14 +279,10 @@ const CampusCalculator = {
 
   getMonthlySummary(state, targetMonthId) {
     const weeks = state.weeks || {};
-    const archives = state.monthlyArchives || [];
 
-    let activeMonthArchive = archives.find(m => m.monthId === targetMonthId);
-    let includedWeekIds = activeMonthArchive ? [...activeMonthArchive.weekIds] : [];
-
-    if (!includedWeekIds.includes(state.activeWeekId)) {
-      includedWeekIds.push(state.activeWeekId);
-    }
+    // List all weeks registered in the state, sorted newest first
+    let includedWeekIds = Object.keys(weeks);
+    includedWeekIds.sort((a, b) => b.localeCompare(a));
 
     let totalAllotted = 0;
     let totalSpent = 0;
@@ -288,9 +311,12 @@ const CampusCalculator = {
           categoryTotals[cat.id] += (wCatTotals[cat.id] || 0);
         });
 
+        const info = (typeof getWeekDateInfo === 'function') ? getWeekDateInfo(w.id) : null;
+        const weekLabel = (w.label && w.label.includes('(')) ? w.label : (info ? info.fullLabel : `Week ${w.id}`);
+
         weekRows.push({
           id: w.id,
-          label: w.label || w.id,
+          label: weekLabel,
           allotted: wAllotted,
           spent: wSpent,
           surprises: wSurp,

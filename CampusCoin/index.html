@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CampusCoin – Student Finance & Weekly Expense Planner</title>
-  <meta name="description" content="CampusCoin is a clean, modern personal finance web app designed for college students to track weekly expenses, manage category budgets, and calculate safe daily allowances." />
-  
+  <meta name="description"
+    content="CampusCoin is a clean, modern personal finance web app designed for college students to track weekly expenses, manage category budgets, and calculate safe daily allowances." />
+
   <!-- Modern Clean Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  
+
   <!-- Chart.js for Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- jsPDF for PDF Exports -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  
+
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -27,6 +31,7 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
+
 <body class="calm-theme">
 
   <!-- Main 3-Pane Application Wrapper (Twitter / Google Calendar Inspired) -->
@@ -35,7 +40,7 @@
     <!-- ================= 1. LEFT SIDEBAR PANE ================= -->
     <aside class="left-pane">
       <div class="sidebar-sticky-wrap">
-        
+
         <!-- Brand Header -->
         <div class="brand-container">
           <div class="brand-icon-box">
@@ -112,7 +117,7 @@
 
     <!-- ================= 2. MIDDLE MAIN CONTENT PANEL ================= -->
     <main class="middle-pane">
-      
+
       <!-- Top Sticky Header -->
       <header class="middle-header">
         <div class="header-left-group">
@@ -169,7 +174,8 @@
               <span class="start-bal-label">Starting Cash (Supreme Pool)</span>
               <div class="start-bal-input-box">
                 <span class="curr-sign">₹</span>
-                <input type="number" id="starting-balance-input" placeholder="0" value="7500" title="Starting Cash: 24% to Food, 76% to Necessities" />
+                <input type="number" id="starting-balance-input" placeholder="0" value="7500"
+                  title="Starting Cash: 24% to Food, 76% to Necessities" />
               </div>
             </div>
             <div class="start-bal-arrow"><i data-lucide="arrow-right"></i></div>
@@ -190,8 +196,38 @@
           <div class="planner-card-header">
             <div>
               <h2 class="card-headline">Weekly Expense Planner</h2>
-              <p class="card-subhead">Zero-sum balance. 24% auto-allotted to Food, 76% to Necessities. Live allowance tracking.</p>
+              <p class="card-subhead">Zero-sum balance. 24% auto-allotted to Food, 76% to Necessities. Live allowance
+                tracking.</p>
             </div>
+          </div>
+
+          <!-- Week Lock / Unlock Status Banners -->
+          <div id="week-lock-banner" class="week-lock-banner hidden">
+            <div class="lock-banner-left">
+              <div class="lock-icon-badge"><i data-lucide="lock"></i></div>
+              <div class="lock-banner-info">
+                <strong>Previous Week – Locked for Editing</strong>
+                <span>This period is concluded. Enter your passcode to unlock modifications.</span>
+              </div>
+            </div>
+            <button id="unlock-week-btn" class="btn-unlock-pill" type="button">
+              <i data-lucide="key-round"></i>
+              <span>Unlock for Edits</span>
+            </button>
+          </div>
+
+          <div id="week-unlocked-banner" class="week-unlocked-banner hidden">
+            <div class="lock-banner-left">
+              <div class="unlock-icon-badge"><i data-lucide="unlock"></i></div>
+              <div class="lock-banner-info">
+                <strong>Unlocked for Editing (Override Mode)</strong>
+                <span>You can now modify items and budgets. Click Lock when finished.</span>
+              </div>
+            </div>
+            <button id="relock-week-btn" class="btn-subtle btn-relock" type="button">
+              <i data-lucide="lock"></i>
+              <span>Lock Week</span>
+            </button>
           </div>
 
           <!-- Weekly Finance Table -->
@@ -206,11 +242,13 @@
                   <th class="col-cat cat-necessities" id="th-cat-necessities">
                     <div class="th-cat"><span>🧼</span> Necessities <small class="pct-sub">(76%)</small></div>
                   </th>
-                  <th class="col-total"><div class="th-cat"><span>⚡</span> Daily Total</div></th>
+                  <th class="col-total">
+                    <div class="th-cat"><span>⚡</span> Daily Total</div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                
+
                 <!-- 1. Allotted Budget Row (Top) -->
                 <tr class="row-budget-target" id="row-allotted-budget">
                   <td class="sticky-cell row-header-cell">
@@ -222,13 +260,15 @@
                   <td class="cell-budget-input cell-col-food">
                     <div class="budget-input-box">
                       <span class="curr-sign">₹</span>
-                      <input type="number" class="budget-input" data-cat="food" placeholder="0" value="1800" title="24% of Starting Cash" />
+                      <input type="number" class="budget-input" data-cat="food" placeholder="0" value="1800"
+                        title="24% of Starting Cash" />
                     </div>
                   </td>
                   <td class="cell-budget-input cell-col-necessities">
                     <div class="budget-input-box">
                       <span class="curr-sign">₹</span>
-                      <input type="number" class="budget-input" data-cat="necessities" placeholder="0" value="5700" title="76% of Starting Cash" />
+                      <input type="number" class="budget-input" data-cat="necessities" placeholder="0" value="5700"
+                        title="76% of Starting Cash" />
                     </div>
                   </td>
                   <td class="cell-budget-total">
@@ -263,7 +303,10 @@
                 <!-- 3. Daily Spend Rows (Sunday through Saturday) -->
                 <!-- Sunday (0) -->
                 <tr class="day-row" data-day="0" id="row-day-0">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Sunday</span><span class="day-sub" id="date-day-0">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Sunday</span><span class="day-sub"
+                        id="date-day-0">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="0" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="0" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-0">₹0</span></td>
@@ -271,7 +314,10 @@
 
                 <!-- Monday (1) -->
                 <tr class="day-row" data-day="1" id="row-day-1">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Monday</span><span class="day-sub" id="date-day-1">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Monday</span><span class="day-sub"
+                        id="date-day-1">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="1" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="1" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-1">₹0</span></td>
@@ -279,7 +325,10 @@
 
                 <!-- Tuesday (2) -->
                 <tr class="day-row" data-day="2" id="row-day-2">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Tuesday</span><span class="day-sub" id="date-day-2">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Tuesday</span><span class="day-sub"
+                        id="date-day-2">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="2" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="2" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-2">₹0</span></td>
@@ -287,7 +336,10 @@
 
                 <!-- Wednesday (3) -->
                 <tr class="day-row" data-day="3" id="row-day-3">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Wednesday</span><span class="day-sub" id="date-day-3">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Wednesday</span><span class="day-sub"
+                        id="date-day-3">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="3" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="3" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-3">₹0</span></td>
@@ -295,7 +347,10 @@
 
                 <!-- Thursday (4) -->
                 <tr class="day-row" data-day="4" id="row-day-4">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Thursday</span><span class="day-sub" id="date-day-4">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Thursday</span><span class="day-sub"
+                        id="date-day-4">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="4" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="4" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-4">₹0</span></td>
@@ -303,7 +358,10 @@
 
                 <!-- Friday (5) -->
                 <tr class="day-row" data-day="5" id="row-day-5">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Friday</span><span class="day-sub" id="date-day-5">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Friday</span><span class="day-sub"
+                        id="date-day-5">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="5" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="5" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-5">₹0</span></td>
@@ -311,7 +369,10 @@
 
                 <!-- Saturday (6) -->
                 <tr class="day-row" data-day="6" id="row-day-6">
-                  <td class="sticky-cell row-header-cell"><div class="day-meta"><span class="day-name">Saturday</span><span class="day-sub" id="date-day-6">--</span></div></td>
+                  <td class="sticky-cell row-header-cell">
+                    <div class="day-meta"><span class="day-name">Saturday</span><span class="day-sub"
+                        id="date-day-6">--</span></div>
+                  </td>
                   <td class="cell-spend cell-col-food" data-day="6" data-cat="food"></td>
                   <td class="cell-spend cell-col-necessities" data-day="6" data-cat="necessities"></td>
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-6">₹0</span></td>
@@ -325,7 +386,8 @@
                         <strong>Surprise</strong>
                         <small>Deducts from Necessities</small>
                       </div>
-                      <button id="add-surprise-row-btn" class="btn-circle-add" title="Log Surprise Anomaly" aria-label="Log Surprise Anomaly">+</button>
+                      <button id="add-surprise-row-btn" class="btn-circle-add" title="Log Surprise Anomaly"
+                        aria-label="Log Surprise Anomaly">+</button>
                     </div>
                   </td>
                   <td colspan="2" class="cell-surprise-tags">
@@ -371,8 +433,10 @@
                   <td class="sticky-cell row-header-cell">
                     <span class="totals-label">Remaining</span>
                   </td>
-                  <td class="cell-rem-cat cell-col-food" data-category="food"><span id="rem-food" class="rem-badge pos">+₹0</span></td>
-                  <td class="cell-rem-cat cell-col-necessities" data-category="necessities"><span id="rem-necessities" class="rem-badge pos">+₹0</span></td>
+                  <td class="cell-rem-cat cell-col-food" data-category="food"><span id="rem-food"
+                      class="rem-badge pos">+₹0</span></td>
+                  <td class="cell-rem-cat cell-col-necessities" data-category="necessities"><span id="rem-necessities"
+                      class="rem-badge pos">+₹0</span></td>
                   <td class="cell-grand-rem">
                     <span id="grand-total-remaining" class="grand-rem-badge pos">+₹0</span>
                   </td>
@@ -479,7 +543,8 @@
           </div>
 
           <form id="todo-tab-add-form" class="todo-input-form">
-            <input type="text" id="todo-tab-text-input" class="todo-input" placeholder="+ Add a new task or study reminder..." required />
+            <input type="text" id="todo-tab-text-input" class="todo-input"
+              placeholder="+ Add a new task or study reminder..." required />
             <button type="submit" class="btn-primary-pill" style="width: auto; margin-bottom: 0;">Add Task</button>
           </form>
 
@@ -689,19 +754,27 @@
 
         <div class="form-group">
           <label for="modal-item-name">Item Name (e.g. Kurkure, Canteen Thali, Coffee)</label>
-          <input type="text" id="modal-item-name" class="form-input" placeholder="e.g. Kurkure" required />
+          <input type="text" id="modal-item-name" class="form-input" placeholder="e.g. Print out" required />
         </div>
 
         <div class="form-group">
           <label for="modal-item-amount">Amount (<span class="curr-label">₹</span>)</label>
           <div class="input-currency-wrapper">
             <span class="curr-prefix">₹</span>
-            <input type="number" id="modal-item-amount" class="form-input" placeholder="0" min="1" step="any" required />
+            <input type="number" id="modal-item-amount" class="form-input" placeholder="0" min="1" step="any"
+              required />
           </div>
         </div>
 
+        <!-- Dedicated Prominent Add Item Button -->
+        <button type="submit" id="cell-modal-submit-btn" class="btn-primary-pill"
+          style="width: 100%; justify-content: center; padding: 0.65rem 1rem; font-size: 0.95rem; margin-top: 0.25rem;">
+          <i data-lucide="plus"></i>
+          <span>+ Add Item to Cell</span>
+        </button>
+
         <!-- Clean Items in this cell breakdown -->
-        <div class="cell-items-section">
+        <div class="cell-items-section" style="margin-top: 0.5rem;">
           <div class="cell-items-section-header">
             <span class="sec-mini-label">Items in this cell</span>
             <span class="cell-modal-total-badge">Cell Total: <strong id="cell-modal-total-amt">₹0</strong></span>
@@ -709,12 +782,9 @@
           <div id="cell-modal-items-list" class="cell-modal-items-list"></div>
         </div>
 
-        <div class="modal-actions">
-          <button type="button" class="btn-subtle" data-modal="cell-items-modal">Cancel</button>
-          <button type="submit" class="btn-primary-pill">
-            <i data-lucide="plus"></i>
-            <span>Save to Cell</span>
-          </button>
+        <div class="modal-actions" style="margin-top: 0.5rem;">
+          <button type="button" class="btn-subtle" data-modal="cell-items-modal"
+            style="width: 100%; justify-content: center;">Done / Close</button>
         </div>
       </form>
     </div>
@@ -722,27 +792,27 @@
 
   <!-- C. Smart Zero-Sum Borrowing / Reallocation Modal -->
   <div id="reallocate-modal" class="modal-overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 480px;">
       <div class="modal-header">
         <div class="modal-title-group">
           <i data-lucide="alert-triangle" class="modal-icon text-amber"></i>
           <h3 id="reallocate-modal-title">Category Limit Reached</h3>
         </div>
-        <button class="modal-close-btn" data-modal="reallocate-modal">&times;</button>
+        <button type="button" class="modal-close-btn" data-modal="reallocate-modal">&times;</button>
       </div>
 
       <div class="modal-body-pad">
-        <p id="reallocate-prompt-text" class="reallocate-text">
+        <div id="reallocate-prompt-text" class="reallocate-text">
           Limit reached! You only have ₹0 left. Would you like to borrow from Necessities?
-        </p>
+        </div>
 
-        <div class="reallocate-choice-grid">
-          <button id="reallocate-confirm-btn" class="btn-primary-pill">
+        <div class="modal-actions" style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" id="reallocate-cancel-btn" class="btn-subtle"
+            data-modal="reallocate-modal">Cancel</button>
+          <button type="button" id="reallocate-confirm-btn" class="btn-modal-primary"
+            style="background: var(--google-blue);">
             <i data-lucide="arrow-down-left"></i>
-            <span id="reallocate-confirm-btn-text">Yes, Borrow from Necessities</span>
-          </button>
-          <button id="reallocate-cancel-btn" class="btn-subtle" data-modal="reallocate-modal">
-            <span>Cancel</span>
+            <span id="reallocate-confirm-btn-text">Yes, Borrow & Add Item</span>
           </button>
         </div>
       </div>
@@ -775,14 +845,16 @@
         <div class="grok-msg grok-bot">
           <div class="msg-bubble">
             <strong>Hey Scholar! 🎓</strong>
-            <p>I'm your Campus AI Financial Coach. Your budget operates on a zero-sum rule with Starting Cash as the supreme authority.</p>
+            <p>I'm your Campus AI Financial Coach. Your budget operates on a zero-sum rule with Starting Cash as the
+              supreme authority.</p>
           </div>
         </div>
       </div>
 
       <!-- AI Input Bar -->
       <form id="campus-ai-chat-form" class="grok-input-bar">
-        <input type="text" id="campus-ai-input-text" placeholder="Ask AI about student budget tips, canteen hacks..." required />
+        <input type="text" id="campus-ai-input-text" placeholder="Ask AI about student budget tips, canteen hacks..."
+          required />
         <button type="submit" class="btn-grok-send"><i data-lucide="send"></i></button>
       </form>
     </div>
@@ -859,12 +931,14 @@
 
       <form id="surprise-form" class="modal-form">
         <p class="modal-help-box">
-          Surprises are unbudgeted emergency costs. In our zero-sum system, they are absorbed by deducting directly from your <strong>Necessities</strong> budget.
+          Surprises are unbudgeted emergency costs. In our zero-sum system, they are absorbed by deducting directly from
+          your <strong>Necessities</strong> budget.
         </p>
 
         <div class="form-group">
           <label for="surprise-desc-input">Description / Reason</label>
-          <input type="text" id="surprise-desc-input" class="form-input" placeholder="e.g. Fest registration fee" required />
+          <input type="text" id="surprise-desc-input" class="form-input" placeholder="e.g. Fest registration fee"
+            required />
         </div>
 
         <div class="form-row">
@@ -913,7 +987,8 @@
         <div class="settings-block">
           <h4 class="settings-block-title">Data Backup & Restore</h4>
           <p class="settings-block-desc">
-            All data is saved automatically in your browser's localStorage. Export a backup JSON to safeguard your budgets or transfer across devices.
+            All data is saved automatically in your browser's localStorage. Export a backup JSON to safeguard your
+            budgets or transfer across devices.
           </p>
 
           <div class="backup-btn-grid">
@@ -937,7 +1012,7 @@
         </div>
 
         <div class="settings-block">
-          <h4 class="settings-block-title">Preferences</h4>
+          <h4 class="settings-block-title">Preferences & Security</h4>
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="currency-select">Currency Symbol</label>
@@ -951,6 +1026,25 @@
             <div class="form-group flex-1">
               <label for="reminder-time-input">Daily Reminder Time</label>
               <input type="time" id="reminder-time-input" class="form-input" value="21:00" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="default-starting-cash-setting">Default Weekly Starting Cash</label>
+              <div class="input-password-wrapper">
+                <input type="number" id="default-starting-cash-setting" class="form-input" value="7500"
+                  placeholder="e.g. 7500" />
+              </div>
+              <small class="form-sub-hint">Base starting cash automatically applied to current & upcoming weeks.</small>
+            </div>
+            <div class="form-group flex-1">
+              <label for="unlock-passcode-setting">Previous Weeks Unlock Passcode</label>
+              <div class="input-password-wrapper">
+                <input type="text" id="unlock-passcode-setting" class="form-input" value="1234"
+                  placeholder="Default: 1234" />
+              </div>
+              <small class="form-sub-hint">Required to edit concluded or archived past weeks.</small>
             </div>
           </div>
 
@@ -1003,17 +1097,63 @@
 
   <!-- 5. Confirmation Dialog Modal -->
   <div id="confirm-modal" class="modal-overlay hidden">
-    <div class="modal-card modal-card-sm">
+    <div class="modal-card" style="max-width: 480px;">
       <div class="modal-header">
         <h3 id="confirm-modal-title">Confirm Action</h3>
+        <button type="button" class="modal-close-btn" id="confirm-modal-close-btn">&times;</button>
       </div>
       <div class="confirm-modal-body">
         <p id="confirm-modal-msg">Are you sure you want to proceed?</p>
       </div>
-      <div class="modal-actions">
-        <button id="confirm-cancel-btn" class="btn-subtle">Cancel</button>
-        <button id="confirm-proceed-btn" class="btn-danger-pill">Confirm</button>
+      <div class="modal-actions" style="margin-top: 1.25rem;">
+        <button type="button" id="confirm-cancel-btn" class="btn-subtle">Cancel</button>
+        <button type="button" id="confirm-proceed-btn" class="btn-modal-primary">Yes, Change Starting Cash</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 6. Unlock Week Passcode Modal -->
+  <div id="unlock-week-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="shield-alert" class="modal-icon text-amber"></i>
+          <h3 id="unlock-modal-title">Unlock Week for Edits</h3>
+        </div>
+        <button class="modal-close-btn" data-modal="unlock-week-modal">&times;</button>
+      </div>
+
+      <form id="unlock-week-form" class="modal-form">
+        <p class="modal-help-box">
+          This week is from a previous period and is locked to safeguard your historical logs. Enter your passcode to
+          unlock editing.
+        </p>
+
+        <div class="form-group">
+          <label for="unlock-passcode-input">Passcode / Password</label>
+          <div class="input-password-wrapper">
+            <input type="password" id="unlock-passcode-input" class="form-input"
+              placeholder="Enter passcode (Default: 1234)" autocomplete="current-password" required />
+            <button type="button" id="toggle-passcode-visibility" class="btn-toggle-eye" title="Toggle visibility">
+              <i data-lucide="eye" id="eye-icon"></i>
+            </button>
+          </div>
+          <small class="form-sub-hint">Default passcode: <strong>1234</strong> (Customizable in Settings)</small>
+        </div>
+
+        <div id="unlock-error-msg" class="form-error-msg hidden">
+          <i data-lucide="alert-circle"></i>
+          <span>Incorrect passcode. Please try again.</span>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-subtle" data-modal="unlock-week-modal">Cancel</button>
+          <button type="submit" class="btn-primary-pill" id="unlock-submit-btn">
+            <i data-lucide="unlock"></i>
+            <span>Unlock Edits</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1029,4 +1169,5 @@
   <script src="js/charts.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

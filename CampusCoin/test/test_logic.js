@@ -97,4 +97,80 @@ console.assert(week.allottedBudgets.necessities === necBeforeSurprise, `Necessit
 console.assert(CampusCalculator.getSurprisesTotal(week) === surpBefore, `Surprises total should be ${surpBefore} after delete, got ${CampusCalculator.getSurprisesTotal(week)}`);
 console.log(`✓ Deleted Surprise -> Necessities budget restored back to ₹${week.allottedBudgets.necessities}`);
 
-console.log('\n=== ALL V6.1 TESTS PASSED SUCCESSFULLY! ===');
+// Test 6: Past Week Lock and Password Unlock Verification
+console.log('\nTest 6: Past Week Lock and Password Unlock Verification');
+const pastWeek = {
+  id: '2026-W32',
+  label: 'Aug 03 – Aug 09',
+  finalized: true,
+  allottedBudgets: { food: 1200, necessities: 3800 }
+};
+
+console.assert(CampusState.isWeekOver(pastWeek) === true, 'Past week should be recognized as over');
+console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week should be locked by default');
+
+// Attempt unlock with wrong passcode
+const failResult = CampusState.unlockWeek('2026-W32', 'wrong_pin');
+console.assert(failResult.success === false, 'Wrong password should fail');
+console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week remains locked');
+
+// Attempt unlock with default passcode (1234)
+const successResult = CampusState.unlockWeek('2026-W32', '1234');
+console.assert(successResult.success === true, 'Default passcode 1234 should unlock');
+console.assert(CampusState.isWeekLocked(pastWeek) === false, 'Past week is now unlocked');
+console.log(`✓ Passcode Security: Wrong PIN rejected; Correct PIN (1234) successfully unlocks past week`);
+
+// Relock past week
+CampusState.lockWeek('2026-W32');
+console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week relocked successfully');
+console.log(`✓ Relock Function: Week returned to locked state`);
+
+// Test 8: Monthly Book Lists All Weeks
+console.log('\nTest 8: Monthly Book Lists All Weeks');
+const monthlySummary = CampusCalculator.getMonthlySummary(CampusState.state, 'current');
+console.assert(monthlySummary.weekRows.length >= 4, `Expected at least 4 weeks listed in Monthly Book, got ${monthlySummary.weekRows.length}`);
+console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W35'), 'Contains Week 35');
+console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W34'), 'Contains Week 34');
+console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W33'), 'Contains Week 33');
+console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W32'), 'Contains Week 32');
+console.log(`✓ Monthly Book: Correctly lists all ${monthlySummary.weekRows.length} weeks in the ledger with combined totals`);
+
+// Test 9: Past unrecorded weeks should all have 0 starting balance, 0 spent, 0 ending balance
+console.log('\nTest 9: Past unrecorded weeks are 0 0');
+const w34 = CampusState.state.weeks['2026-W34'];
+const w33 = CampusState.state.weeks['2026-W33'];
+const w32 = CampusState.state.weeks['2026-W32'];
+console.assert(w34.startingBalance === 0, `Week 34 starting balance should be 0, got ${w34.startingBalance}`);
+console.assert(w33.startingBalance === 0, `Week 33 starting balance should be 0, got ${w33.startingBalance}`);
+console.assert(w32.startingBalance === 0, `Week 32 starting balance should be 0, got ${w32.startingBalance}`);
+console.assert(CampusCalculator.getTotalAllottedBudget(w34) === 0, 'Week 34 total allotted is 0');
+console.assert(CampusCalculator.getGrandTotalSpent(w34) === 0, 'Week 34 total spent is 0');
+console.log('✓ Past unrecorded weeks (W32, W33, W34) are all 0 0');
+
+// Test 10: Setting default starting cash applies to coming weeks
+console.log('\nTest 10: Default Starting Cash setting applies to coming weeks');
+CampusState.setDefaultStartingCash(6000, true);
+console.assert(CampusState.getDefaultStartingCash() === 6000, 'Default starting cash is 6000');
+const w36 = CampusState.state.weeks['2026-W36'];
+console.assert(w36.startingBalance === 6000, `Coming week 36 starting balance should be 6000, got ${w36.startingBalance}`);
+console.assert(w36.allottedBudgets.food === 1440, `Week 36 food should be 1440 (24%), got ${w36.allottedBudgets.food}`);
+console.assert(w36.allottedBudgets.necessities === 4560, `Week 36 necessities should be 4560 (76%), got ${w36.allottedBudgets.necessities}`);
+console.log('✓ Default Starting Cash (₹6,000) successfully propagated to coming weeks (Food: ₹1,440, Necessities: ₹4,560)');
+
+// Test 11: Safe to Spend Widget Days Left Calculation across Past, Active, and Future Weeks
+console.log('\nTest 11: Safe to Spend Widget Days Left across Past, Active, and Future Weeks');
+const safePast = CampusCalculator.getSafeToSpendToday(w32);
+console.assert(safePast.daysRemaining === 0, `Past week daysRemaining should be 0, got ${safePast.daysRemaining}`);
+console.assert(safePast.daysLabel === '0 days (Concluded)', `Past week daysLabel should be '0 days (Concluded)', got ${safePast.daysLabel}`);
+console.assert(safePast.safeAmount === 0, `Past week safeAmount should be 0, got ${safePast.safeAmount}`);
+
+const safeFuture = CampusCalculator.getSafeToSpendToday(w36);
+console.assert(safeFuture.daysRemaining === 7, `Future week daysRemaining should be 7, got ${safeFuture.daysRemaining}`);
+console.assert(safeFuture.daysLabel === '7 days left', `Future week daysLabel should be '7 days left', got ${safeFuture.daysLabel}`);
+console.assert(safeFuture.safeAmount > 0, 'Future week has baseline daily allowance');
+
+const safeActive = CampusCalculator.getSafeToSpendToday(CampusState.state.weeks['2026-W35']);
+console.assert(safeActive.daysRemaining >= 1 && safeActive.daysRemaining <= 7, `Active week daysRemaining should be between 1 and 7, got ${safeActive.daysRemaining}`);
+console.log(`✓ Safe-to-Spend Widget: Past week shows '${safePast.daysLabel}', Future week shows '${safeFuture.daysLabel}', Active week shows '${safeActive.daysLabel}'`);
+
+console.log('\n=== ALL V6.5 TESTS PASSED SUCCESSFULLY! ===');

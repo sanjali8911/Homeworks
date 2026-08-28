@@ -2260,6 +2260,53 @@ input[type=number] {
   margin-top: 1rem;
 }
 
+.btn-modal-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--google-blue);
+  color: #ffffff;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-modal-primary:hover {
+  background: var(--google-blue-hover);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-modal-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--google-red);
+  color: #ffffff;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-modal-danger:hover {
+  background: #c5221f;
+}
+
 .modal-help-box {
   font-size: 0.75rem;
   color: var(--google-red);
@@ -2433,6 +2480,241 @@ input[type=number] {
 .badge-active { background: var(--google-blue-soft); color: var(--google-blue); }
 .badge-green { background: var(--google-green-soft); color: var(--google-green); }
 .badge-yellow { background: var(--google-amber-soft); color: var(--google-amber); }
+.badge-locked { background: #fef3c7 !important; color: #b45309 !important; border: 1px solid #fde68a; display: inline-flex; align-items: center; gap: 0.25rem; }
+.badge-locked i { width: 11px; height: 11px; }
+.badge-unlocked { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0; display: inline-flex; align-items: center; gap: 0.25rem; }
+.badge-unlocked i { width: 11px; height: 11px; }
+
+/* ==========================================================================
+   Week Lock / Unlock Status Banners & Controls
+   ========================================================================== */
+
+.week-lock-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  animation: fadeInTab 0.2s ease-out;
+}
+
+.week-unlocked-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-sm);
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  animation: fadeInTab 0.2s ease-out;
+}
+
+.lock-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lock-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lock-icon-badge i {
+  width: 17px;
+  height: 17px;
+}
+
+.unlock-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.unlock-icon-badge i {
+  width: 17px;
+  height: 17px;
+}
+
+.lock-banner-info strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.lock-banner-info span {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.btn-unlock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-pill);
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-unlock-pill:hover {
+  background: #b45309;
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-unlock-pill i {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-relock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  border: 1px solid #a7f3d0;
+  color: #059669;
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-relock:hover {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.btn-relock i {
+  width: 14px;
+  height: 14px;
+}
+
+/* Password Form & Visibility */
+.input-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-password-wrapper .form-input {
+  padding-right: 2.4rem;
+}
+
+.btn-toggle-eye {
+  position: absolute;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.btn-toggle-eye:hover {
+  color: var(--text-main);
+}
+
+.btn-toggle-eye i {
+  width: 16px;
+  height: 16px;
+}
+
+.form-sub-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  display: block;
+}
+
+.form-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-xs);
+  margin-top: 0.6rem;
+}
+
+.form-error-msg i {
+  width: 15px;
+  height: 15px;
+}
+
+.input-shake {
+  animation: inputShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  border-color: #dc2626 !important;
+}
+
+@keyframes inputShake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Locked Table Visual Cue */
+.google-cal-table.table-locked .budget-input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.google-cal-table.table-locked .cell-itemized-box {
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.google-cal-table.table-locked .cell-itemized-box:hover {
+  border-color: var(--google-amber);
+}
+
+.google-cal-table.table-locked .cell-add-btn-mini {
+  color: var(--google-amber);
+}
 .badge-red { background: var(--google-red-soft); color: var(--google-red); }
 
 .hidden { display: none !important; }

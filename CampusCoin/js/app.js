@@ -15,6 +15,7 @@ let calPickerYear = new Date().getFullYear();
 let calPickerMonth = new Date().getMonth(); // 0-indexed
 let pendingBorrowing = null;
 let pendingBudgetChange = null;
+let pendingActionAfterUnlock = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) lucide.createIcons();
@@ -38,6 +39,7 @@ function initApp() {
   setupCampusAIDrawer();
   setupCalendarPopover();
   setupBorrowingModal();
+  setupUnlockWeekModal();
 }
 
 /**
@@ -83,7 +85,14 @@ function renderDynamicDatesAndTodayBadge(week) {
   // Update Right Sidebar Safe-to-Spend Day Badge
   const todayBadgeEl = document.getElementById('today-day-badge');
   if (todayBadgeEl) {
-    todayBadgeEl.textContent = todayDayName;
+    const currentWeekId = getWeekIdentifier(today);
+    if (week.id < currentWeekId) {
+      todayBadgeEl.textContent = 'Concluded';
+    } else if (week.id > currentWeekId) {
+      todayBadgeEl.textContent = 'Upcoming';
+    } else {
+      todayBadgeEl.textContent = todayDayName;
+    }
   }
 
   // Parse active week startDate
@@ -121,17 +130,44 @@ function renderDynamicDatesAndTodayBadge(week) {
 function updateWeekNavLabel(week) {
   const labelEl = document.getElementById('current-week-label');
   if (labelEl) {
-    labelEl.textContent = week.label || `Week ${week.id}`;
+    const info = (typeof getWeekDateInfo === 'function') ? getWeekDateInfo(week.id) : null;
+    labelEl.textContent = (week.label && week.label.includes('(')) ? week.label : (info ? info.fullLabel : `Week ${week.id}`);
   }
 
   const badgeEl = document.getElementById('week-status-badge');
   if (badgeEl) {
-    if (week.finalized) {
-      badgeEl.textContent = 'Archived';
-      badgeEl.className = 'pill-badge';
+    const currentCalWeekId = getWeekIdentifier(new Date());
+    const isLocked = CampusState.isWeekLocked(week);
+    const isOver = CampusState.isWeekOver(week);
+
+    if (week.id === currentCalWeekId) {
+      badgeEl.textContent = 'Active (This Week)';
+      badgeEl.className = 'pill-badge badge-active';
+      badgeEl.title = 'Current active week';
+      badgeEl.onclick = null;
+    } else if (week.id > currentCalWeekId) {
+      badgeEl.textContent = 'Upcoming';
+      badgeEl.className = 'pill-badge badge-yellow';
+      badgeEl.title = 'Upcoming future week';
+      badgeEl.onclick = null;
+    } else if (isLocked) {
+      badgeEl.innerHTML = `<i data-lucide="lock"></i> <span>${week.finalized ? 'Archived' : 'Locked'}</span>`;
+      badgeEl.className = 'pill-badge badge-locked';
+      badgeEl.title = 'Previous week locked. Click to enter passcode & unlock edits.';
+      badgeEl.onclick = () => openUnlockModal();
+    } else if (isOver) {
+      badgeEl.innerHTML = `<i data-lucide="unlock"></i> <span>Unlocked</span>`;
+      badgeEl.className = 'pill-badge badge-unlocked';
+      badgeEl.title = 'Unlocked for edits. Click to relock.';
+      badgeEl.onclick = () => {
+        CampusState.lockWeek(week.id);
+        CampusNotifications.showToast('Week relocked against edits 🔒', 'info');
+      };
     } else {
       badgeEl.textContent = 'Active';
       badgeEl.className = 'pill-badge badge-active';
+      badgeEl.title = 'Current active week';
+      badgeEl.onclick = null;
     }
   }
 }
@@ -141,8 +177,13 @@ function updateWeekNavLabel(week) {
  */
 function renderStartingBalanceCard(week, currency) {
   const startInput = document.getElementById('starting-balance-input');
-  if (startInput && document.activeElement !== startInput) {
-    startInput.value = (parseFloat(week.startingBalance) || 0).toFixed(0);
+  const isLocked = CampusState.isWeekLocked(week);
+  if (startInput) {
+    if (document.activeElement !== startInput) {
+      startInput.value = (parseFloat(week.startingBalance) || 0).toFixed(0);
+    }
+    startInput.disabled = isLocked;
+    startInput.title = isLocked ? 'Week is locked. Enter passcode to edit starting cash.' : 'Starting Cash: 24% to Food, 76% to Necessities';
   }
 
   const grandSpent = CampusCalculator.getGrandTotalSpent(week);
@@ -187,9 +228,9 @@ function renderSafeToSpendWidget(week, currency) {
   const pacingFill = document.getElementById('safe-pacing-fill');
 
   if (amountEl) amountEl.textContent = safeData.safeAmount.toLocaleString('en-IN');
-  if (daysEl) daysEl.textContent = `${safeData.daysRemaining} days left`;
+  if (daysEl) daysEl.textContent = safeData.daysLabel;
   if (poolEl) poolEl.textContent = `${currency}${safeData.remainingPool.toFixed(0)}`;
-  if (todaySpentEl) todaySpentEl.textContent = `${currency}${safeData.todaySpent.toFixed(0)}`;
+  if (todaySpentEl) todaySpentEl.textContent = safeData.isPast ? '--' : `${currency}${safeData.todaySpent.toFixed(0)}`;
   if (noteEl) noteEl.textContent = safeData.paceMessage;
 
   if (pacingFill) {
@@ -274,11 +315,37 @@ function renderBudgetVelocityMeter(week, currency) {
  * 4. Main Weekly Table with Live Balance Row & Zero-Sum Budgeting
  */
 function renderWeeklyTable(week, currency) {
+  const isLocked = CampusState.isWeekLocked(week);
+  const isOver = CampusState.isWeekOver(week);
+
+  // Lock / Unlock Banners
+  const lockBanner = document.getElementById('week-lock-banner');
+  const unlockedBanner = document.getElementById('week-unlocked-banner');
+  const tableEl = document.getElementById('planner-table');
+
+  if (isLocked) {
+    if (lockBanner) lockBanner.classList.remove('hidden');
+    if (unlockedBanner) unlockedBanner.classList.add('hidden');
+    if (tableEl) tableEl.classList.add('table-locked');
+  } else if (isOver) {
+    if (lockBanner) lockBanner.classList.add('hidden');
+    if (unlockedBanner) unlockedBanner.classList.remove('hidden');
+    if (tableEl) tableEl.classList.remove('table-locked');
+  } else {
+    if (lockBanner) lockBanner.classList.add('hidden');
+    if (unlockedBanner) unlockedBanner.classList.add('hidden');
+    if (tableEl) tableEl.classList.remove('table-locked');
+  }
+
   // 1. Budget Inputs (Top Row)
   CATEGORIES.forEach(cat => {
     const input = document.querySelector(`.budget-input[data-cat="${cat.id}"]`);
-    if (input && document.activeElement !== input) {
-      input.value = (parseFloat(week.allottedBudgets[cat.id]) || 0).toFixed(0);
+    if (input) {
+      if (document.activeElement !== input) {
+        input.value = (parseFloat(week.allottedBudgets[cat.id]) || 0).toFixed(0);
+      }
+      input.disabled = isLocked;
+      input.title = isLocked ? 'Week is locked. Enter passcode to edit target limit.' : 'Budget target';
     }
   });
 
@@ -361,6 +428,10 @@ function renderWeeklyTable(week, currency) {
       e.stopPropagation();
       const day = parseInt(el.getAttribute('data-day'), 10);
       const cat = el.getAttribute('data-cat');
+      if (CampusState.isWeekLocked(week)) {
+        openUnlockModal(() => openCellItemsModal(day, cat));
+        return;
+      }
       openCellItemsModal(day, cat);
     });
   });
@@ -451,6 +522,14 @@ function renderSurprisesList(week, currency) {
   container.querySelectorAll('.surprise-remove-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (CampusState.isWeekLocked(week)) {
+        openUnlockModal(() => {
+          const id = btn.getAttribute('data-id');
+          CampusState.deleteSurprise(id);
+          CampusNotifications.showToast('Surprise anomaly removed. Refunded funds back to Necessities budget.', 'info');
+        });
+        return;
+      }
       const id = btn.getAttribute('data-id');
       CampusState.deleteSurprise(id);
       CampusNotifications.showToast('Surprise anomaly removed. Refunded funds back to Necessities budget.', 'info');
@@ -526,7 +605,7 @@ function renderCellModalItems() {
       </div>
       <div style="display: flex; align-items: center; gap: 0.65rem;">
         <strong>${currency}${it.amount}</strong>
-        <button class="cell-item-del-btn" data-id="${it.id}" title="Delete item">&times;</button>
+        <button type="button" class="cell-item-del-btn" data-id="${it.id}" title="Delete item">&times;</button>
       </div>
     `;
     listContainer.appendChild(row);
@@ -1111,30 +1190,48 @@ function setupTableEventListeners() {
 
       if (nameInput) nameInput.value = '';
       if (amtInput) amtInput.value = '';
-      closeModal('cell-items-modal');
+      renderCellModalItems();
       CampusNotifications.playChime('coin');
-      CampusNotifications.showToast(`Logged ${name} (${currency}${amt}) in ${dayName} ${catName}!`, 'success');
+      CampusNotifications.showToast(`Added ${name} (${currency}${amt}) to ${dayName} ${catName}!`, 'success');
+      setTimeout(() => nameInput?.focus(), 50);
     });
   }
 
   // Surprises buttons
   const addSurpriseBtn = document.getElementById('add-surprise-quick-btn');
   const addSurpriseRowBtn = document.getElementById('add-surprise-row-btn');
-  if (addSurpriseBtn) addSurpriseBtn.addEventListener('click', openSurpriseModal);
-  if (addSurpriseRowBtn) addSurpriseRowBtn.addEventListener('click', openSurpriseModal);
+  const handleSurpriseClick = () => {
+    const week = CampusState.getActiveWeek();
+    if (CampusState.isWeekLocked(week)) {
+      openUnlockModal(() => openSurpriseModal());
+      return;
+    }
+    openSurpriseModal();
+  };
+  if (addSurpriseBtn) addSurpriseBtn.addEventListener('click', handleSurpriseClick);
+  if (addSurpriseRowBtn) addSurpriseRowBtn.addEventListener('click', handleSurpriseClick);
 
   // Reset Week
   const resetWeekBtn = document.getElementById('reset-week-btn');
   if (resetWeekBtn) {
     resetWeekBtn.addEventListener('click', () => {
-      showConfirmModal(
-        'Reset Current Week?',
-        'This will clear all daily spends and items for this active week. Your starting cash, 24% food, and 76% necessities targets will remain.',
-        () => {
-          CampusState.resetCurrentWeek();
-          CampusNotifications.showToast('Current week reset', 'info');
-        }
-      );
+      const week = CampusState.getActiveWeek();
+      const triggerReset = () => {
+        showConfirmModal(
+          'Reset Week Entries?',
+          'This will clear all daily spends and items for this week. Your starting cash, 24% food, and 76% necessities targets will remain.',
+          () => {
+            CampusState.resetCurrentWeek();
+            CampusNotifications.showToast('Week reset successfully', 'info');
+          }
+        );
+      };
+
+      if (CampusState.isWeekLocked(week)) {
+        openUnlockModal(() => triggerReset());
+        return;
+      }
+      triggerReset();
     });
   }
 
@@ -1226,6 +1323,11 @@ function setupModals() {
   // Quick Add Modal
   const sidebarQuickAdd = document.getElementById('sidebar-quick-add-btn');
   const openQuickAdd = () => {
+    const week = CampusState.getActiveWeek();
+    if (CampusState.isWeekLocked(week)) {
+      openUnlockModal(() => openQuickAdd());
+      return;
+    }
     const todayIndex = new Date().getDay();
     const daySelect = document.getElementById('quick-day-select');
     if (daySelect) {
@@ -1328,6 +1430,77 @@ function closeModal(id) {
   if (modal) modal.classList.add('hidden');
 }
 
+function openUnlockModal(onSuccessCallback = null) {
+  pendingActionAfterUnlock = onSuccessCallback;
+  const week = CampusState.getActiveWeek();
+  const titleEl = document.getElementById('unlock-modal-title');
+  if (titleEl) {
+    titleEl.textContent = `Unlock ${week.label || 'Week'} for Edits 🔒`;
+  }
+  const passInput = document.getElementById('unlock-passcode-input');
+  const errEl = document.getElementById('unlock-error-msg');
+  if (passInput) passInput.value = '';
+  if (errEl) errEl.classList.add('hidden');
+  openModal('unlock-week-modal');
+  setTimeout(() => passInput?.focus(), 120);
+}
+
+function setupUnlockWeekModal() {
+  const unlockBtn = document.getElementById('unlock-week-btn');
+  if (unlockBtn) {
+    unlockBtn.addEventListener('click', () => openUnlockModal());
+  }
+
+  const relockBtn = document.getElementById('relock-week-btn');
+  if (relockBtn) {
+    relockBtn.addEventListener('click', () => {
+      const week = CampusState.getActiveWeek();
+      CampusState.lockWeek(week.id);
+      CampusNotifications.showToast('Week locked against edits 🔒', 'info');
+    });
+  }
+
+  const toggleEyeBtn = document.getElementById('toggle-passcode-visibility');
+  const passInput = document.getElementById('unlock-passcode-input');
+  if (toggleEyeBtn && passInput) {
+    toggleEyeBtn.addEventListener('click', () => {
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      const icon = document.getElementById('eye-icon');
+      if (icon) {
+        icon.setAttribute('data-lucide', isPass ? 'eye-off' : 'eye');
+        if (window.lucide) lucide.createIcons();
+      }
+    });
+  }
+
+  const form = document.getElementById('unlock-week-form');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const week = CampusState.getActiveWeek();
+      const code = passInput ? passInput.value : '';
+      const result = CampusState.unlockWeek(week.id, code);
+
+      if (result.success) {
+        closeModal('unlock-week-modal');
+        CampusNotifications.playChime('coin');
+        CampusNotifications.showToast(`Week ${week.id} unlocked for editing! 🔓`, 'success');
+        if (pendingActionAfterUnlock) {
+          const cb = pendingActionAfterUnlock;
+          pendingActionAfterUnlock = null;
+          cb();
+        }
+      } else {
+        const errEl = document.getElementById('unlock-error-msg');
+        if (errEl) errEl.classList.remove('hidden');
+        passInput?.classList.add('input-shake');
+        setTimeout(() => passInput?.classList.remove('input-shake'), 450);
+      }
+    });
+  }
+}
+
 /**
  * 13. Export Actions
  */
@@ -1416,6 +1589,26 @@ function setupSettingsActions() {
     currencySelect.addEventListener('change', (e) => {
       CampusState.updateSettings({ currency: e.target.value });
       CampusNotifications.showToast(`Currency set to ${e.target.value}`, 'info');
+    });
+  }
+
+  const defaultCashSetting = document.getElementById('default-starting-cash-setting');
+  if (defaultCashSetting) {
+    defaultCashSetting.value = CampusState.getDefaultStartingCash();
+    defaultCashSetting.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      CampusState.setDefaultStartingCash(val, true);
+      CampusNotifications.showToast(`Default weekly starting cash set to ${CampusState.getCurrency()}${val} (applied to coming weeks)!`, 'success');
+    });
+  }
+
+  const unlockPasscodeSetting = document.getElementById('unlock-passcode-setting');
+  if (unlockPasscodeSetting) {
+    unlockPasscodeSetting.value = CampusState.getUnlockPasscode();
+    unlockPasscodeSetting.addEventListener('change', (e) => {
+      const val = e.target.value.trim() || '1234';
+      CampusState.setUnlockPasscode(val);
+      CampusNotifications.showToast('Unlock passcode updated successfully!', 'success');
     });
   }
 
@@ -1524,6 +1717,24 @@ function renderMonthlyBook(state, currency) {
   }
 
   summary.weekRows.forEach(w => {
+    const currentCalWeekId = getWeekIdentifier(new Date());
+    let statusText = 'Archived';
+    let statusClass = 'pill-badge';
+
+    if (w.id === currentCalWeekId) {
+      statusText = 'Active';
+      statusClass = 'pill-badge badge-active';
+    } else if (w.id > currentCalWeekId) {
+      statusText = 'Upcoming';
+      statusClass = 'pill-badge badge-yellow';
+    } else if (w.finalized) {
+      statusText = 'Archived';
+      statusClass = 'pill-badge';
+    } else {
+      statusText = 'Concluded';
+      statusClass = 'pill-badge badge-locked';
+    }
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${w.label}</strong></td>
@@ -1531,7 +1742,7 @@ function renderMonthlyBook(state, currency) {
       <td>${currency}${w.spent.toFixed(0)}</td>
       <td class="text-rose">${currency}${w.surprises.toFixed(0)}</td>
       <td class="${w.endingBalance >= 0 ? 'text-green' : 'text-rose'}"><strong>${currency}${w.endingBalance.toFixed(0)}</strong></td>
-      <td><span class="pill-badge ${w.finalized ? '' : 'badge-active'}">${w.finalized ? 'Archived' : 'Active'}</span></td>
+      <td><span class="${statusClass}">${statusText}</span></td>
       <td><button class="btn-subtle view-week-btn" data-id="${w.id}">Open Logbook</button></td>
     `;
     tbody.appendChild(tr);
@@ -1553,6 +1764,7 @@ function showConfirmModal(title, message, onConfirm, onCancel, options = {}) {
   const msgEl = document.getElementById('confirm-modal-msg');
   const proceedBtn = document.getElementById('confirm-proceed-btn');
   const cancelBtn = document.getElementById('confirm-cancel-btn');
+  const closeBtn = document.getElementById('confirm-modal-close-btn');
 
   if (!modal) return;
   if (titleEl) titleEl.textContent = title;
@@ -1564,10 +1776,11 @@ function showConfirmModal(title, message, onConfirm, onCancel, options = {}) {
 
   if (proceedBtn) {
     proceedBtn.textContent = confirmText;
-    proceedBtn.className = isDanger ? 'btn-danger-pill' : 'btn-primary-pill';
+    proceedBtn.className = isDanger ? 'btn-modal-danger' : 'btn-modal-primary';
   }
   if (cancelBtn) {
     cancelBtn.textContent = cancelText;
+    cancelBtn.className = 'btn-subtle';
   }
 
   let resolved = false;
@@ -1576,6 +1789,7 @@ function showConfirmModal(title, message, onConfirm, onCancel, options = {}) {
     modal.classList.add('hidden');
     proceedBtn?.removeEventListener('click', handleProceed);
     cancelBtn?.removeEventListener('click', handleCancel);
+    closeBtn?.removeEventListener('click', handleCancel);
     modal.removeEventListener('click', handleOverlayClick);
     document.removeEventListener('keydown', handleEscapeKey);
   };
@@ -1608,6 +1822,7 @@ function showConfirmModal(title, message, onConfirm, onCancel, options = {}) {
 
   proceedBtn?.addEventListener('click', handleProceed);
   cancelBtn?.addEventListener('click', handleCancel);
+  closeBtn?.addEventListener('click', handleCancel);
   modal.addEventListener('click', handleOverlayClick);
   document.addEventListener('keydown', handleEscapeKey);
 

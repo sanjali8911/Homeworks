@@ -24,7 +24,55 @@ const DAYS_OF_WEEK = [
   { index: 6, name: 'Saturday', short: 'Sat' }
 ];
 
-function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
+function getWeekDateInfo(weekId) {
+  if (!weekId || !weekId.includes('-W')) {
+    return {
+      startDate: '2026-08-23',
+      fullLabel: weekId || 'Current Week'
+    };
+  }
+  const parts = weekId.split('-W');
+  const year = parseInt(parts[0], 10);
+  const weekNum = parseInt(parts[1], 10);
+
+  const firstSun = new Date(year, 0, 1);
+  firstSun.setDate(1 - firstSun.getDay());
+
+  const targetSun = new Date(firstSun);
+  targetSun.setDate(firstSun.getDate() + (weekNum - 1) * 7);
+
+  const targetSat = new Date(targetSun);
+  targetSat.setDate(targetSun.getDate() + 6);
+
+  const startMonth = targetSun.toLocaleDateString('en-US', { month: 'short' });
+  const startDay = String(targetSun.getDate()).padStart(2, '0');
+  const endMonth = targetSat.toLocaleDateString('en-US', { month: 'short' });
+  const endDay = String(targetSat.getDate()).padStart(2, '0');
+
+  const dateRangeStr = (startMonth === endMonth)
+    ? `${startMonth} ${startDay} – ${startMonth} ${endDay}`
+    : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
+
+  const y = targetSun.getFullYear();
+  const m = String(targetSun.getMonth() + 1).padStart(2, '0');
+  const d = String(targetSun.getDate()).padStart(2, '0');
+  const startDateStr = `${y}-${m}-${d}`;
+
+  return {
+    weekNum,
+    year,
+    startDate: startDateStr,
+    dateRangeStr,
+    fullLabel: `Week ${weekNum} (${dateRangeStr})`
+  };
+}
+
+if (typeof window !== 'undefined') window.getWeekDateInfo = getWeekDateInfo;
+if (typeof global !== 'undefined') global.getWeekDateInfo = getWeekDateInfo;
+
+function createEmptyWeek(weekId, label, startDate, startingBalance = null) {
+  const dateInfo = getWeekDateInfo(weekId);
+  const currentCalWeekId = getWeekIdentifier(new Date());
   const dailyMatrix = {};
   for (let d = 0; d < 7; d++) {
     dailyMatrix[d] = {
@@ -33,7 +81,20 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
     };
   }
 
-  const startVal = parseFloat(startingBalance) || 0;
+  let defaultCash = 7500;
+  if (typeof window !== 'undefined' && window.CampusState && typeof window.CampusState.getDefaultStartingCash === 'function') {
+    defaultCash = window.CampusState.getDefaultStartingCash();
+  }
+
+  let startVal = 0;
+  if (startingBalance !== null && startingBalance !== undefined) {
+    startVal = parseFloat(startingBalance) || 0;
+  } else if (weekId >= currentCalWeekId) {
+    startVal = defaultCash;
+  } else {
+    startVal = 0; // Past unrecorded weeks default to 0 0
+  }
+
   const foodBudget = Math.round(startVal * 0.24);
   const necessitiesBudget = Math.max(0, startVal - foodBudget);
 
@@ -42,44 +103,56 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = 7500) {
     necessities: necessitiesBudget
   };
 
+  const isPast = weekId < currentCalWeekId;
+
   return {
     id: weekId,
-    label: label || `Week ${weekId.split('-W')[1] || 'Current'}`,
-    startDate: startDate || new Date().toISOString().split('T')[0],
+    label: (label && label.includes('(')) ? label : dateInfo.fullLabel,
+    startDate: startDate || dateInfo.startDate,
     startingBalance: startVal,
     allottedBudgets,
     dailySpends: dailyMatrix,
     surprises: [],
-    finalized: false,
-    finalizedAt: null
+    finalized: isPast,
+    finalizedAt: isPast ? `${startDate || dateInfo.startDate}T23:59:59Z` : null
   };
 }
 
 function getSampleState() {
   const currentWeekId = getWeekIdentifier(new Date());
-  const initialWeek = createEmptyWeek(currentWeekId, 'Week 35 (Aug 24 – Aug 30)', '2026-08-24', 7500);
+  let defaultCash = 7500;
+  if (typeof window !== 'undefined' && window.CampusState && typeof window.CampusState.getDefaultStartingCash === 'function') {
+    defaultCash = window.CampusState.getDefaultStartingCash();
+  }
+  const initialWeek = createEmptyWeek(currentWeekId, 'Week 35 (Aug 23 – Aug 29)', '2026-08-23', defaultCash);
 
-  // Sunday
+  // Sunday Aug 23
   initialWeek.dailySpends[0] = {
     food: { items: [{ id: '101', name: 'Kurkure & Snacks', amount: 20, isBorrowed: false }, { id: '102', name: 'Cafeteria Lunch', amount: 160, isBorrowed: false }, { id: '103', name: 'Evening Chai', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '104', name: 'Laundry Detergent', amount: 150, isBorrowed: false }] }
   };
 
-  // Monday
+  // Monday Aug 24
   initialWeek.dailySpends[1] = {
     food: { items: [{ id: '201', name: 'Lunch Thali', amount: 180, isBorrowed: false }, { id: '202', name: 'Fruit Juice', amount: 60, isBorrowed: false }] },
     necessities: { items: [] }
   };
 
-  // Tuesday
+  // Tuesday Aug 25
   initialWeek.dailySpends[2] = {
     food: { items: [{ id: '301', name: 'Hostel Breakfast', amount: 80, isBorrowed: false }, { id: '302', name: 'Evening Tea', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '303', name: 'Pharmacy supplies', amount: 220, isBorrowed: false }] }
   };
 
-  // Wednesday (Today)
+  // Wednesday Aug 26
   initialWeek.dailySpends[3] = {
     food: { items: [{ id: '401', name: 'Kurkure & Biscuits', amount: 30, isBorrowed: false }, { id: '402', name: 'Canteen Coffee', amount: 40, isBorrowed: false }] },
+    necessities: { items: [] }
+  };
+
+  // Saturday Aug 29 (Today in IST)
+  initialWeek.dailySpends[6] = {
+    food: { items: [] },
     necessities: { items: [] }
   };
 
@@ -90,58 +163,64 @@ function getSampleState() {
 
   // Sample To-Dos
   const sampleTodos = [
-    { id: 'todo-1', text: 'Pay Mess dues before Friday', completed: false, date: new Date().toISOString().split('T')[0] },
-    { id: 'todo-2', text: 'Buy exam stationery & notebook', completed: true, date: new Date().toISOString().split('T')[0] },
-    { id: 'todo-3', text: 'Check campus library reserve copy for Physics', completed: false, date: new Date().toISOString().split('T')[0] }
+    { id: 'todo-1', text: 'Pay Mess dues before Friday', completed: false, date: '2026-08-29' },
+    { id: 'todo-2', text: 'Buy exam stationery & notebook', completed: true, date: '2026-08-29' },
+    { id: 'todo-3', text: 'Check campus library reserve copy for Physics', completed: false, date: '2026-08-29' }
   ];
 
-  // Past archived week
-  const pastWeek1 = createEmptyWeek('2026-W32', 'Week 32 (Aug 03 – Aug 09)', '2026-08-03', 8000);
-  pastWeek1.allottedBudgets.food = 1920;
-  pastWeek1.allottedBudgets.necessities = 6080;
-  pastWeek1.dailySpends[0] = { food: { items: [{ id: 'p1', name: 'Mess dinner', amount: 350, isBorrowed: false }] }, necessities: { items: [{ id: 'p2', name: 'Dorm supplies', amount: 300, isBorrowed: false }] } };
-  pastWeek1.dailySpends[2] = { food: { items: [{ id: 'p3', name: 'Canteen lunch', amount: 240, isBorrowed: false }] }, necessities: { items: [] } };
-  pastWeek1.finalized = true;
-  pastWeek1.finalizedAt = '2026-08-09T23:59:59Z';
+  // Past weeks (with no data recorded, all 0 0)
+  const pastWeek1 = createEmptyWeek('2026-W32', 'Week 32 (Aug 02 – Aug 08)', '2026-08-02', 0);
+  const pastWeek2 = createEmptyWeek('2026-W33', 'Week 33 (Aug 09 – Aug 15)', '2026-08-09', 0);
+  const pastWeek3 = createEmptyWeek('2026-W34', 'Week 34 (Aug 16 – Aug 22)', '2026-08-16', 0);
+
+  // Upcoming week (Week 36) inherits defaultCash
+  const nextWeek = createEmptyWeek('2026-W36', 'Week 36 (Aug 30 – Sep 05)', '2026-08-30', defaultCash);
 
   return {
     version: 6,
     activeWeekId: currentWeekId,
     weeks: {
       [currentWeekId]: initialWeek,
+      '2026-W36': nextWeek,
+      '2026-W34': pastWeek3,
+      '2026-W33': pastWeek2,
       '2026-W32': pastWeek1
     },
     todos: sampleTodos,
     settings: {
       currency: '₹',
+      defaultStartingCash: defaultCash,
       reminderTime: '21:00',
       notificationsEnabled: true,
       soundEnabled: true,
       theme: 'calm',
+      unlockPasscode: '1234',
       lastReminderPromptDate: null
     },
     monthlyArchives: [
       {
         monthId: '2026-08',
         monthLabel: 'August 2026',
-        weekIds: ['2026-W32']
+        weekIds: ['2026-W36', '2026-W35', '2026-W34', '2026-W33', '2026-W32']
       }
     ]
   };
 }
 
-function getWeekIdentifier(d) {
-  const date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  const weekNum = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-  return `${date.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+function getWeekIdentifier(d = new Date()) {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const year = date.getFullYear();
+  const firstSun = new Date(year, 0, 1);
+  firstSun.setDate(1 - firstSun.getDay());
+  const diffDays = Math.floor((date.getTime() - firstSun.getTime()) / (24 * 60 * 60 * 1000));
+  const weekNum = Math.floor(diffDays / 7) + 1;
+  return `${year}-W${String(weekNum).padStart(2, '0')}`;
 }
 
 class StateManager {
   constructor() {
     this.listeners = [];
+    this.unlockedWeekIds = new Set();
     this.state = this.loadState();
   }
 
@@ -154,15 +233,59 @@ class StateManager {
         return initial;
       }
       const parsed = JSON.parse(serialized);
+      const currentCalWeekId = getWeekIdentifier(new Date());
       if (!parsed.weeks || !parsed.activeWeekId || !parsed.weeks[parsed.activeWeekId]) {
-        const currentId = getWeekIdentifier(new Date());
-        parsed.activeWeekId = currentId;
-        if (!parsed.weeks[currentId]) {
-          parsed.weeks[currentId] = createEmptyWeek(currentId);
+        parsed.activeWeekId = currentCalWeekId;
+        if (!parsed.weeks[currentCalWeekId]) {
+          parsed.weeks[currentCalWeekId] = createEmptyWeek(currentCalWeekId);
         }
       }
+
+      if (!parsed.settings) parsed.settings = {};
+      if (parsed.settings.defaultStartingCash === undefined) parsed.settings.defaultStartingCash = 7500;
+      if (!parsed.settings.currency) parsed.settings.currency = '₹';
+      if (!parsed.settings.unlockPasscode) parsed.settings.unlockPasscode = '1234';
+      if (!parsed.todos) parsed.todos = [];
+
+      // If active week in storage was set to a future week (e.g. Week 36), reset active week to current calendar week (Week 35)
+      if (parsed.activeWeekId > currentCalWeekId) {
+        parsed.activeWeekId = currentCalWeekId;
+      }
+
+      // Merge sample historical weeks if missing
+      const sample = getSampleState();
+      Object.keys(sample.weeks).forEach(wId => {
+        if (!parsed.weeks[wId]) {
+          parsed.weeks[wId] = sample.weeks[wId];
+        }
+      });
+
+      // Ensure all weeks have exact Sunday-to-Saturday date ranges in their labels and startDates
+      Object.keys(parsed.weeks).forEach(wId => {
+        const w = parsed.weeks[wId];
+        if (w) {
+          const info = getWeekDateInfo(wId);
+          w.label = info.fullLabel;
+          w.startDate = info.startDate;
+          // Current calendar week should not be finalized
+          if (wId === currentCalWeekId && w.finalized) {
+            w.finalized = false;
+          }
+          // Past unrecorded weeks with no user items should be 0 0
+          if (wId < currentCalWeekId) {
+            const hasUserItems = Object.values(w.dailySpends || {}).some(d => (d.food?.items?.length > 0) || (d.necessities?.items?.length > 0));
+            if (!hasUserItems && (w.startingBalance === 7500 || w.startingBalance === 8000)) {
+              w.startingBalance = 0;
+              w.allottedBudgets = { food: 0, necessities: 0 };
+              w.surprises = [];
+            }
+          }
+        }
+      });
+
       if (!parsed.settings) parsed.settings = {};
       if (!parsed.settings.currency) parsed.settings.currency = '₹';
+      if (!parsed.settings.unlockPasscode) parsed.settings.unlockPasscode = '1234';
       if (!parsed.todos) parsed.todos = [];
 
       return parsed;
@@ -243,7 +366,8 @@ class StateManager {
     week.allottedBudgets.food = foodBudget;
     week.allottedBudgets.necessities = necessitiesBudget;
 
-    this.saveToStorage(this.state);
+    // Apply baseline to coming weeks as well
+    this.setDefaultStartingCash(val, true);
   }
 
   updateBudget(category, amount) {
@@ -452,8 +576,40 @@ class StateManager {
     this.saveToStorage(this.state);
   }
 
+  getDefaultStartingCash() {
+    return (this.state.settings && this.state.settings.defaultStartingCash !== undefined)
+      ? parseFloat(this.state.settings.defaultStartingCash)
+      : 7500;
+  }
+
+  setDefaultStartingCash(amount, applyToComingWeeks = true) {
+    const val = Math.max(0, parseFloat(amount) || 0);
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.defaultStartingCash = val;
+
+    if (applyToComingWeeks) {
+      const currentCalWeekId = getWeekIdentifier(new Date());
+      Object.keys(this.state.weeks).forEach(wId => {
+        if (wId >= currentCalWeekId) {
+          const w = this.state.weeks[wId];
+          if (w) {
+            const hasUserSpends = Object.values(w.dailySpends || {}).some(d => (d.food?.items?.length > 0) || (d.necessities?.items?.length > 0));
+            if (!hasUserSpends || wId === this.state.activeWeekId) {
+              w.startingBalance = val;
+              if (!w.allottedBudgets) w.allottedBudgets = {};
+              w.allottedBudgets.food = Math.round(val * 0.24);
+              w.allottedBudgets.necessities = Math.max(0, val - w.allottedBudgets.food);
+            }
+          }
+        }
+      });
+    }
+
+    this.saveToStorage(this.state);
+  }
+
   getSettings() {
-    return this.state.settings || { currency: '₹', reminderTime: '21:00', notificationsEnabled: true, soundEnabled: true };
+    return this.state.settings || { currency: '₹', reminderTime: '21:00', defaultStartingCash: 7500, notificationsEnabled: true, soundEnabled: true };
   }
 
   updateSettings(newSettings) {
@@ -463,6 +619,45 @@ class StateManager {
 
   getCurrency() {
     return (this.state.settings && this.state.settings.currency) ? this.state.settings.currency : '₹';
+  }
+
+  getUnlockPasscode() {
+    return (this.state.settings && this.state.settings.unlockPasscode) ? this.state.settings.unlockPasscode : '1234';
+  }
+
+  isWeekOver(week) {
+    if (!week) return false;
+    const currentWeekId = getWeekIdentifier(new Date());
+    if (week.finalized) return true;
+    if (week.id < currentWeekId) return true;
+    return false;
+  }
+
+  isWeekLocked(week) {
+    if (!week) return false;
+    if (!this.isWeekOver(week)) return false;
+    return !this.unlockedWeekIds.has(week.id);
+  }
+
+  unlockWeek(weekId, passcode) {
+    const requiredPasscode = this.getUnlockPasscode();
+    if (String(passcode || '').trim() === String(requiredPasscode).trim()) {
+      this.unlockedWeekIds.add(weekId);
+      this.notifyListeners();
+      return { success: true };
+    }
+    return { success: false, message: 'Incorrect passcode. Please try again.' };
+  }
+
+  lockWeek(weekId) {
+    this.unlockedWeekIds.delete(weekId);
+    this.notifyListeners();
+  }
+
+  setUnlockPasscode(newCode) {
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.unlockPasscode = (newCode || '1234').trim();
+    this.saveToStorage(this.state);
   }
 }
 
