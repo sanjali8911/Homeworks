@@ -1775,21 +1775,160 @@ function setupSettingsActions() {
 }
 
 /**
- * 15. Monthly Book Tab Render & Month Selector
+ * 15. Google Calendar 12-Month Popover & Monthly Book Navigation
  */
-function setupMonthlyBookControls() {
-  const selectEl = document.getElementById('monthly-month-select');
-  const prevBtn = document.getElementById('monthly-prev-month-btn');
-  const nextBtn = document.getElementById('monthly-next-month-btn');
+let calendarPopoverContext = 'monthly'; // 'monthly' | 'weekly'
 
-  if (selectEl) {
-    selectEl.addEventListener('change', (e) => {
-      selectedMonthlyBookMonth = e.target.value;
-      renderMonthlyBook(CampusState.state, CampusState.getCurrency());
-      CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
-      CampusNotifications.showToast(`Showing Monthly Book for ${selectEl.options[selectEl.selectedIndex]?.text || selectedMonthlyBookMonth}`, 'info');
+function setupCalendarPopover() {
+  const popover = document.getElementById('google-cal-month-popover');
+  const closeBtn = document.getElementById('cal-popover-close-btn');
+  const prevYearBtn = document.getElementById('cal-year-prev-btn');
+  const nextYearBtn = document.getElementById('cal-year-next-btn');
+  const quickTodayBtn = document.getElementById('cal-quick-today-btn');
+  const monthlyTrigger = document.getElementById('monthly-book-picker-trigger');
+  const weeklyTrigger = document.getElementById('week-calendar-trigger');
+
+  const openCalPopover = (context = 'monthly') => {
+    calendarPopoverContext = context;
+    if (!selectedMonthlyBookMonth) {
+      const activeWeek = CampusState.getActiveWeek();
+      selectedMonthlyBookMonth = getWeekMonthInfo(activeWeek.id).monthId;
+    }
+    const [yStr] = selectedMonthlyBookMonth.split('-');
+    calPickerYear = parseInt(yStr, 10) || new Date().getFullYear();
+
+    renderCalendar12MonthsGrid();
+    if (popover) popover.classList.remove('hidden');
+  };
+
+  if (monthlyTrigger) {
+    monthlyTrigger.addEventListener('click', () => openCalPopover('monthly'));
+  }
+
+  if (weeklyTrigger) {
+    weeklyTrigger.addEventListener('click', () => openCalPopover('weekly'));
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      if (popover) popover.classList.add('hidden');
     });
   }
+
+  if (popover) {
+    popover.addEventListener('click', (e) => {
+      if (e.target === popover) {
+        popover.classList.add('hidden');
+      }
+    });
+  }
+
+  if (prevYearBtn) {
+    prevYearBtn.addEventListener('click', () => {
+      calPickerYear -= 1;
+      renderCalendar12MonthsGrid();
+    });
+  }
+
+  if (nextYearBtn) {
+    nextYearBtn.addEventListener('click', () => {
+      calPickerYear += 1;
+      renderCalendar12MonthsGrid();
+    });
+  }
+
+  if (quickTodayBtn) {
+    quickTodayBtn.addEventListener('click', () => {
+      const today = new Date();
+      const currentMonthId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      selectCalendarMonth(currentMonthId);
+    });
+  }
+}
+
+function renderCalendar12MonthsGrid() {
+  const container = document.getElementById('cal-12-months-container');
+  const yearTitle = document.getElementById('cal-popover-current-year');
+  if (yearTitle) yearTitle.textContent = String(calPickerYear);
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonthIndex = today.getMonth(); // 0-indexed
+  const todayMonthId = `${todayYear}-${String(todayMonthIndex + 1).padStart(2, '0')}`;
+
+  const monthShorts = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  for (let m = 0; m < 12; m++) {
+    const monthId = `${calPickerYear}-${String(m + 1).padStart(2, '0')}`;
+    const isCurrentSelected = (selectedMonthlyBookMonth === monthId);
+    const isTodayRealMonth = (todayMonthId === monthId);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cal-month-pill-btn';
+    if (isCurrentSelected) btn.classList.add('active-selected-month');
+    if (isTodayRealMonth) btn.classList.add('current-today-month');
+
+    let badgeText = monthNames[m].substring(0, 4);
+    if (isTodayRealMonth) badgeText = 'Today';
+
+    btn.innerHTML = `
+      <span class="cal-m-short">${monthShorts[m]}</span>
+      <span class="cal-m-badge">${badgeText}</span>
+    `;
+
+    btn.addEventListener('click', () => {
+      selectCalendarMonth(monthId);
+    });
+
+    container.appendChild(btn);
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function selectCalendarMonth(monthId) {
+  selectedMonthlyBookMonth = monthId;
+  const [yStr, mStr] = monthId.split('-');
+  const year = parseInt(yStr, 10);
+  const monthIndex = parseInt(mStr, 10) - 1;
+
+  // Retrieve weeks for this selected month via Wednesday Rule
+  const monthWeeks = getWeeksForMonth(year, monthIndex);
+  const monthLabel = monthWeeks[0]?.monthLabel || new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  // Update label
+  const labelEl = document.getElementById('monthly-book-selected-label');
+  if (labelEl) labelEl.textContent = monthLabel;
+
+  // If in Weekly Planner context, jump to first week of that month
+  if (calendarPopoverContext === 'weekly') {
+    if (monthWeeks.length > 0) {
+      CampusState.setActiveWeek(monthWeeks[0].weekId);
+    }
+  }
+
+  // Render monthly book and chart
+  renderMonthlyBook(CampusState.state, CampusState.getCurrency());
+  CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
+
+  // Close popover
+  const popover = document.getElementById('google-cal-month-popover');
+  if (popover) popover.classList.add('hidden');
+
+  CampusNotifications.showToast(`Selected ${monthLabel}`, 'info');
+}
+
+function setupMonthlyBookControls() {
+  const prevBtn = document.getElementById('monthly-prev-month-btn');
+  const nextBtn = document.getElementById('monthly-next-month-btn');
 
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
@@ -1822,55 +1961,8 @@ function navigateMonthlyBookMonth(offset) {
     year += 1;
   }
 
-  selectedMonthlyBookMonth = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
-  renderMonthlyBook(CampusState.state, CampusState.getCurrency());
-  CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
-}
-
-function populateMonthlyBookDropdown(state, currentSelectedMonthId) {
-  const selectEl = document.getElementById('monthly-month-select');
-  if (!selectEl) return;
-
-  const monthsMap = new Map();
-
-  const today = new Date();
-  const startMonthDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
-  for (let i = 0; i < 24; i++) {
-    const d = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + i, 1);
-    const mId = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const mLabel = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    monthsMap.set(mId, mLabel);
-  }
-
-  if (state && state.weeks) {
-    Object.keys(state.weeks).forEach(wId => {
-      const info = getWeekDateInfo(wId);
-      if (info && info.monthId) {
-        monthsMap.set(info.monthId, info.monthLabel);
-      }
-    });
-  }
-
-  if (currentSelectedMonthId && !monthsMap.has(currentSelectedMonthId)) {
-    const [y, m] = currentSelectedMonthId.split('-');
-    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-    monthsMap.set(currentSelectedMonthId, d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
-  }
-
-  const sortedMonthIds = Array.from(monthsMap.keys()).sort();
-
-  selectEl.innerHTML = '';
-  sortedMonthIds.forEach(mId => {
-    const opt = document.createElement('option');
-    opt.value = mId;
-    opt.textContent = monthsMap.get(mId);
-    if (mId === currentSelectedMonthId) {
-      opt.selected = true;
-    }
-    selectEl.appendChild(opt);
-  });
-
-  selectEl.value = currentSelectedMonthId;
+  const newMonthId = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  selectCalendarMonth(newMonthId);
 }
 
 function renderMonthlyBook(state, currency) {
@@ -1879,9 +1971,13 @@ function renderMonthlyBook(state, currency) {
     selectedMonthlyBookMonth = getWeekMonthInfo(activeWeek.id).monthId;
   }
 
-  populateMonthlyBookDropdown(state, selectedMonthlyBookMonth);
-
   const summary = CampusCalculator.getMonthlySummary(state, selectedMonthlyBookMonth);
+
+  // Update header title label
+  const labelEl = document.getElementById('monthly-book-selected-label');
+  if (labelEl) {
+    labelEl.textContent = summary.monthLabel || selectedMonthlyBookMonth;
+  }
 
   const allottedEl = document.getElementById('monthly-total-allotted');
   const spentEl = document.getElementById('monthly-total-spent');
@@ -1942,7 +2038,7 @@ function renderMonthlyBook(state, currency) {
       <td class="text-rose">${currency}${w.surprises.toFixed(0)}</td>
       <td class="${w.endingBalance >= 0 ? 'text-green' : 'text-rose'}"><strong>${currency}${w.endingBalance.toFixed(0)}</strong></td>
       <td><span class="${statusClass}">${statusText}</span></td>
-      <td><button class="btn-subtle view-week-btn" data-id="${w.id}">Open Logbook</button></td>
+      <td><button class="btn-subtle view-week-btn" data-id="${w.id}">Open Logbook ↗</button></td>
     `;
     tbody.appendChild(tr);
   });

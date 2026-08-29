@@ -180,4 +180,17 @@ console.assert(!CampusState.state.todos.some(t => t.id === newTodo.id), 'Todo de
 
 console.log('✓ Supabase module, table schema compatibility, and state CRUD operations verified');
 
+// Test 10: Dynamic Calendar for September 2027 (No Hardcoding Verification)
+console.log('\nTest 10: Dynamic Calendar for September 2027 (No Hardcoding)');
+const sep2027Weeks = getWeeksForMonth(2027, 8); // September 2027
+console.assert(sep2027Weeks.length === 5, `Expected 5 weeks in Sep 2027, got ${sep2027Weeks.length}`);
+console.assert(sep2027Weeks[0].dateRangeStr === 'Aug 29 – Sep 04', `Expected first week to be Aug 29 - Sep 04, got ${sep2027Weeks[0].dateRangeStr}`);
+console.assert(sep2027Weeks[4].dateRangeStr === 'Sep 26 – Oct 02', `Expected 5th week to be Sep 26 - Oct 02, got ${sep2027Weeks[4].dateRangeStr}`);
+
+const sep2027Summary = CampusCalculator.getMonthlySummary(CampusState.state, '2027-09');
+console.assert(sep2027Summary.monthId === '2027-09', 'Sep 2027 summary monthId is 2027-09');
+console.assert(sep2027Summary.weekRows.length === 5, '5 week rows dynamically computed for September 2027');
+console.log(`✓ September 2027: Dynamically computed ${sep2027Weeks.length} weeks -> [${sep2027Weeks.map(w => w.dateRangeStr).join(', ')}]`);
+console.log(`✓ Monthly Book for September 2027: Total Allotted = ₹${sep2027Summary.totalAllotted}`);
+
 console.log('\n=== ALL V7.0 SUPABASE & ZERO-SUM TESTS PASSED SUCCESSFULLY! ===');

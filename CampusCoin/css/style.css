@@ -1976,65 +1976,155 @@ input[type=number] {
   to { transform: scale(1); opacity: 1; }
 }
 
-.cal-pop-header {
+.cal-month-grid-card {
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 14px 35px -5px rgba(0, 0, 0, 0.18), 0 8px 12px -6px rgba(0, 0, 0, 0.1);
+  padding: 1.15rem;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.google-cal-nav-group {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
+  gap: 0.25rem;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.35rem;
+  box-shadow: var(--shadow-sm);
 }
 
-.cal-month-title {
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.cal-grid-days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
-}
-
-.cal-grid-cells {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-
-.cal-day-cell {
-  aspect-ratio: 1;
+.cal-nav-arrow-btn {
+  background: transparent;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  border-radius: 50%;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  color: var(--text-main);
+  transition: all 0.15s ease;
 }
 
-.cal-day-cell:hover {
+.cal-nav-arrow-btn:hover {
   background: var(--bg-subtle);
+  color: var(--google-blue);
 }
 
-.cal-day-cell.selected-day {
-  background: var(--google-blue);
-  color: #ffffff;
+.google-cal-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.65rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: all 0.15s ease;
+}
+
+.google-cal-picker-trigger:hover {
+  background: var(--bg-subtle);
+  color: var(--google-blue);
+}
+
+.header-picker-title {
   font-weight: 700;
 }
 
-.cal-day-cell.other-month {
-  color: var(--text-dim);
+.cal-year-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.cal-pop-footer {
+.cal-year-title {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.cal-12-months-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0.85rem 0;
+}
+
+.cal-month-pill-btn {
   display: flex;
-  justify-content: space-between;
-  margin-top: 0.75rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-light);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.35rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-canvas);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cal-month-pill-btn:hover {
+  background: var(--bg-subtle);
+  border-color: var(--google-blue);
+  transform: translateY(-1px);
+}
+
+.cal-month-pill-btn.active-selected-month {
+  background: var(--google-blue);
+  border-color: var(--google-blue);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.35);
+}
+
+.cal-month-pill-btn.active-selected-month .cal-m-short,
+.cal-month-pill-btn.active-selected-month .cal-m-badge {
+  color: #ffffff !important;
+}
+
+.cal-month-pill-btn.current-today-month {
+  border: 1.5px solid var(--google-green);
+}
+
+.cal-m-short {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.cal-m-badge {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.btn-text-action {
+  background: transparent;
+  border: none;
+  color: var(--google-blue);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.btn-text-action:hover {
+  background: var(--bg-subtle);
 }
 
 /* ==========================================================================

@@ -476,25 +476,19 @@
               </h2>
               <p class="card-subhead">Consolidated 4-week breakdown & savings summary for all 12 months.</p>
             </div>
-            <div class="monthly-header-controls"
-              style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-              <div class="month-selector-wrapper">
-                <select id="monthly-book-month-select" class="form-select month-picker-select"
-                  aria-label="Select Month">
-                  <option value="2026-01">January 2026</option>
-                  <option value="2026-02">February 2026</option>
-                  <option value="2026-03">March 2026</option>
-                  <option value="2026-04">April 2026</option>
-                  <option value="2026-05">May 2026</option>
-                  <option value="2026-06">June 2026</option>
-                  <option value="2026-07">July 2026</option>
-                  <option value="2026-08" selected>August 2026 (Active)</option>
-                  <option value="2026-09">September 2026</option>
-                  <option value="2026-10">October 2026</option>
-                  <option value="2026-11">November 2026</option>
-                  <option value="2026-12">December 2026</option>
-                  <option value="all">Full Year (All 12 Months)</option>
-                </select>
+            <div class="monthly-header-controls">
+              <div class="google-cal-nav-group">
+                <button type="button" id="monthly-prev-month-btn" class="cal-nav-arrow-btn" title="Previous Month">
+                  <i data-lucide="chevron-left"></i>
+                </button>
+                <button type="button" id="monthly-book-picker-trigger" class="google-cal-picker-trigger" title="Click to choose Month & Year">
+                  <i data-lucide="calendar" class="cal-mini-icon"></i>
+                  <span id="monthly-book-selected-label" class="header-picker-title">August 2026</span>
+                  <i data-lucide="chevron-down" class="cal-dropdown-arrow"></i>
+                </button>
+                <button type="button" id="monthly-next-month-btn" class="cal-nav-arrow-btn" title="Next Month">
+                  <i data-lucide="chevron-right"></i>
+                </button>
               </div>
               <button id="add-current-to-monthly-btn" class="btn-subtle">
                 <i data-lucide="plus"></i> Add Current Week
@@ -1199,6 +1193,36 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 4. Google Calendar 12-Month Year & Month Picker Popover -->
+  <div id="google-cal-month-popover" class="cal-popover-overlay hidden">
+    <div class="cal-popover-card cal-month-grid-card">
+      <div class="cal-pop-header">
+        <button type="button" id="cal-year-prev-btn" class="icon-btn-subtle" title="Previous Year">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <div class="cal-year-display">
+          <span id="cal-popover-current-year" class="cal-year-title">2026</span>
+        </div>
+        <button type="button" id="cal-year-next-btn" class="icon-btn-subtle" title="Next Year">
+          <i data-lucide="chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- 12-Month Grid Buttons (Jan - Dec) dynamically generated -->
+      <div class="cal-12-months-grid" id="cal-12-months-container"></div>
+
+      <div class="cal-pop-footer">
+        <button type="button" id="cal-quick-today-btn" class="btn-text-action">
+          <i data-lucide="calendar"></i>
+          <span>Current Month</span>
+        </button>
+        <button type="button" id="cal-popover-close-btn" class="btn-text-action" style="color: var(--text-muted);">
+          <span>Close</span>
+        </button>
+      </div>
     </div>
   </div>
 
