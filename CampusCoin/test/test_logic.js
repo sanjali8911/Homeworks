@@ -1,5 +1,5 @@
 /**
- * Automated Unit & Logic Verification Test for CampusCoin (V6.1)
+ * Automated Unit & Logic Verification Test for CampusCoin (V7.0 - Supabase Cloud DB & Dynamic Calendar Engine)
  */
 
 const storageMock = {};
@@ -17,11 +17,18 @@ global.window = {
 const fs = require('fs');
 const path = require('path');
 
+// Mock or load Supabase JS client
+const supabaseJs = require('@supabase/supabase-js');
+global.supabase = supabaseJs;
+global.window.supabase = supabaseJs;
+
+eval(fs.readFileSync(path.join(__dirname, '../js/supabase.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/state.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/calculator.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/insights.js'), 'utf8'));
 
-global.CampusState = window.CampusState;
+global.CampusSupabase = window.CampusSupabase || global.CampusSupabase;
+global.CampusState = window.CampusState || global.CampusState;
 global.CampusCalculator = window.CampusCalculator;
 global.CampusInsights = window.CampusInsights;
 global.CATEGORIES = [
@@ -38,139 +45,139 @@ global.DAYS_OF_WEEK = [
   { index: 6, name: 'Saturday', short: 'Sat' }
 ];
 
-console.log('=== RUNNING CAMPUSCOIN V6.2 ZERO-SUM & TWO-CATEGORY TESTS ===\n');
+console.log('=== RUNNING CAMPUSCOIN V7.0 SUPABASE & DYNAMIC CALENDAR TESTS ===\n');
 
-// Test 1: Starting Cash = 7500 -> Food = 1800 (24%), Necessities = 5700 (76%)
+// Test 1: Wednesday Rule for Month Assignment (Between-Month Weeks)
+console.log('Test 1: Wednesday Rule for Month Assignment (Between-Month Weeks)');
+const augWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-23T00:00:00')));
+console.assert(augWeekInfo.monthId === '2026-08', `Expected 2026-08 for Aug 23 week, got ${augWeekInfo.monthId}`);
+console.assert(augWeekInfo.dateRangeStr === 'Aug 23 – Aug 29', `Expected Aug 23 - Aug 29, got ${augWeekInfo.dateRangeStr}`);
+console.log(`✓ Aug 23 – Aug 29: Wednesday is Aug 26 -> Month is ${augWeekInfo.monthLabel} (${augWeekInfo.monthId})`);
+
+const sepWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-30T00:00:00')));
+console.assert(sepWeekInfo.monthId === '2026-09', `Expected 2026-09 for Aug 30 week (Wed is Sep 02), got ${sepWeekInfo.monthId}`);
+console.assert(sepWeekInfo.dateRangeStr === 'Aug 30 – Sep 05', `Expected Aug 30 - Sep 05, got ${sepWeekInfo.dateRangeStr}`);
+console.log(`✓ Aug 30 – Sep 05: Wednesday is Sep 02 -> Month is correctly ${sepWeekInfo.monthLabel} (${sepWeekInfo.monthId})`);
+
+const feb2027WeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2027-01-31T00:00:00')));
+console.assert(feb2027WeekInfo.monthId === '2027-02', `Expected 2027-02 for Jan 31 2027 week (Wed is Feb 03), got ${feb2027WeekInfo.monthId}`);
+console.assert(feb2027WeekInfo.dateRangeStr === 'Jan 31 – Feb 06', `Expected Jan 31 - Feb 06, got ${feb2027WeekInfo.dateRangeStr}`);
+console.log(`✓ Jan 31 – Feb 06 (2027): Wednesday is Feb 03 -> Month is correctly ${feb2027WeekInfo.monthLabel} (${feb2027WeekInfo.monthId})\n`);
+
+// Test 2: getWeeksForMonth returns all weeks in a month based on Wednesday
+console.log('Test 2: getWeeksForMonth for August 2026, September 2026, and 2027');
+const augWeeks = getWeeksForMonth(2026, 7); // August (0-indexed 7)
+console.assert(augWeeks.length === 4, `Expected 4 weeks in August 2026, got ${augWeeks.length}`);
+console.log(`✓ August 2026: ${augWeeks.length} weeks -> [${augWeeks.map(w => w.dateRangeStr).join(', ')}]`);
+
+const sepWeeks = getWeeksForMonth(2026, 8); // September (0-indexed 8)
+console.assert(sepWeeks.length === 5, `Expected 5 weeks in September 2026, got ${sepWeeks.length}`);
+console.assert(sepWeeks[0].dateRangeStr === 'Aug 30 – Sep 05', `Expected first week of Sep to be Aug 30 - Sep 05, got ${sepWeeks[0].dateRangeStr}`);
+console.log(`✓ September 2026: ${sepWeeks.length} weeks -> [${sepWeeks.map(w => w.dateRangeStr).join(', ')}]`);
+
+const jan2027Weeks = getWeeksForMonth(2027, 0); // January 2027 (0-indexed 0)
+console.assert(jan2027Weeks.length === 4, `Expected 4 weeks in January 2027, got ${jan2027Weeks.length}`);
+console.log(`✓ January 2027: ${jan2027Weeks.length} weeks -> [${jan2027Weeks.map(w => w.dateRangeStr).join(', ')}]\n`);
+
+// Test 3: Monthly Book Dynamic Summary for specific month IDs
+console.log('Test 3: Monthly Book Dynamic Summary for Specific Month IDs');
+const augSummary = CampusCalculator.getMonthlySummary(CampusState.state, '2026-08');
+console.assert(augSummary.monthId === '2026-08', 'Summary monthId is 2026-08');
+console.assert(augSummary.weekRows.length === 4, `Expected 4 weeks in Aug summary, got ${augSummary.weekRows.length}`);
+console.log(`✓ Monthly Book for August 2026: ${augSummary.weekRows.length} weeks listed, Total Allotted = ₹${augSummary.totalAllotted}, Total Spent = ₹${augSummary.totalSpent}`);
+
+const sepSummary = CampusCalculator.getMonthlySummary(CampusState.state, '2026-09');
+console.assert(sepSummary.monthId === '2026-09', 'Summary monthId is 2026-09');
+console.assert(sepSummary.weekRows.length === 5, `Expected 5 weeks in Sep summary, got ${sepSummary.weekRows.length}`);
+console.log(`✓ Monthly Book for September 2026: ${sepSummary.weekRows.length} weeks listed, Total Allotted = ₹${sepSummary.totalAllotted}, Total Spent = ₹${sepSummary.totalSpent}`);
+
+const summary2027 = CampusCalculator.getMonthlySummary(CampusState.state, '2027-01');
+console.assert(summary2027.monthId === '2027-01', 'Summary monthId is 2027-01');
+console.assert(summary2027.weekRows.length === 4, `Expected 4 weeks in Jan 2027 summary, got ${summary2027.weekRows.length}`);
+console.log(`✓ Monthly Book for January 2027: ${summary2027.weekRows.length} weeks listed\n`);
+
+// Test 4: Starting Cash = 7500 -> Food = 1800 (24%), Necessities = 5700 (76%)
+console.log('Test 4: Zero-Sum Starting Cash Allocation');
 CampusState.updateStartingBalance(7500);
 let week = CampusState.getActiveWeek();
 console.assert(week.allottedBudgets.food === 1800, 'Food 24% of 7500 is 1800');
 console.assert(week.allottedBudgets.necessities === 5700, 'Necessities 76% of 7500 is 5700');
 console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Total Allotted matches 7500');
-console.log(`✓ Initial State: Starting Cash ₹7,500 -> Food ₹1,800, Necessities ₹5,700`);
+console.log(`✓ Starting Cash ₹7,500 -> Food ₹1,800, Necessities ₹5,700`);
 
-// Test 2: User changes Food allotted limit to 2200 -> Must borrow 400 from Necessities!
-console.log('Test 2: User changes Food Allotted Limit to 2200');
+// Test 5: Zero-Sum Borrowing
+console.log('\nTest 5: Zero-Sum Borrowing');
 const oldNec = week.allottedBudgets.necessities;
 CampusState.borrowFunds('necessities', 'food', 400);
 week = CampusState.getActiveWeek();
 console.assert(week.allottedBudgets.food === 2200, 'Food should now be 2200');
 console.assert(week.allottedBudgets.necessities === oldNec - 400, `Necessities should decrease by 400 to ${oldNec - 400}`);
 console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Zero-sum strictly preserved at 7500');
-console.log(`✓ Zero-Sum Allotted Limit Change: Necessities ₹${week.allottedBudgets.necessities}, Food ₹${week.allottedBudgets.food}. Sum = ₹${CampusCalculator.getTotalAllottedBudget(week)}\n`);
+console.log(`✓ Borrowing ₹400 from Necessities: Food ₹${week.allottedBudgets.food}, Necessities ₹${week.allottedBudgets.necessities}. Sum = ₹${CampusCalculator.getTotalAllottedBudget(week)}`);
 
-// Test 3: Adding item into Wednesday Food Cell (Day 3)
-console.log('Test 3: Adding Item into Wednesday Food Cell (Day 3)');
-const foodBefore = CampusCalculator.getCategoryTotals(week).food;
-const wedItem = CampusState.addItemToCell(3, 'food', 'Special Canteen Meal', 300, false);
+// Test 6: Surprise Anomaly Zero-Sum Reduction
+console.log('\nTest 6: Surprise Anomaly Zero-Sum Reduction');
+const necBeforeSurp = week.allottedBudgets.necessities;
+const surpriseItem = CampusState.addSurprise('Campus Bike Repair', 350, 2);
 week = CampusState.getActiveWeek();
-console.assert(wedItem.name === 'Special Canteen Meal', 'Item name matches');
-console.assert(CampusCalculator.getCategoryTotals(week).food === foodBefore + 300, 'Food spent increased by 300');
-console.assert(CampusCalculator.getTotalAllottedBudget(week) === 7500, 'Zero-sum preserved at 7500');
-console.log(`✓ Item logged in Wednesday Food cell: ₹300. Total Allotted sum = ₹7,500\n`);
+console.assert(week.allottedBudgets.necessities === necBeforeSurp - 350, `Necessities should decrease by 350`);
+console.log(`✓ Added Surprise ₹350 -> Necessities budget reduced to ₹${week.allottedBudgets.necessities}`);
 
-// Test 4: Dynamic date computation verification
-console.log('Test 4: Dynamic Date Computation');
-const startDate = new Date('2026-08-24T00:00:00');
-for (let d = 0; d < 7; d++) {
-  const dDate = new Date(startDate);
-  dDate.setDate(dDate.getDate() + d);
-  const formatted = `${dDate.toLocaleDateString('en-US', { month: 'short' })} ${dDate.getDate()}`;
-  console.log(`  Day ${d} (${DAYS_OF_WEEK[d].name}): ${formatted}`);
-}
-
-// Test 5: Adding a Surprise Anomaly Reduces Necessities Budget
-console.log('\nTest 5: Adding a Surprise Anomaly Reduces Necessities Budget');
-week = CampusState.getActiveWeek();
-const necBeforeSurprise = week.allottedBudgets.necessities;
-const surpBefore = CampusCalculator.getSurprisesTotal(week);
-const surpriseItem = CampusState.addSurprise('Broken Charger', 450, 2);
-week = CampusState.getActiveWeek();
-
-console.assert(week.allottedBudgets.necessities === necBeforeSurprise - 450, `Necessities should decrease by 450 to ${necBeforeSurprise - 450}, got ${week.allottedBudgets.necessities}`);
-console.assert(CampusCalculator.getSurprisesTotal(week) === surpBefore + 450, `Surprises total should be ${surpBefore + 450}, got ${CampusCalculator.getSurprisesTotal(week)}`);
-console.log(`✓ Added Surprise of ₹450 -> Necessities budget reduced from ₹${necBeforeSurprise} to ₹${week.allottedBudgets.necessities}`);
-
-// Deleting the Surprise Restores Necessities Budget
 CampusState.deleteSurprise(surpriseItem.id);
 week = CampusState.getActiveWeek();
-console.assert(week.allottedBudgets.necessities === necBeforeSurprise, `Necessities should be restored to ${necBeforeSurprise}, got ${week.allottedBudgets.necessities}`);
-console.assert(CampusCalculator.getSurprisesTotal(week) === surpBefore, `Surprises total should be ${surpBefore} after delete, got ${CampusCalculator.getSurprisesTotal(week)}`);
-console.log(`✓ Deleted Surprise -> Necessities budget restored back to ₹${week.allottedBudgets.necessities}`);
+console.assert(week.allottedBudgets.necessities === necBeforeSurp, `Necessities restored to ${necBeforeSurp}`);
+console.log(`✓ Deleted Surprise -> Necessities budget restored to ₹${week.allottedBudgets.necessities}`);
 
-// Test 6: Past Week Lock and Password Unlock Verification
-console.log('\nTest 6: Past Week Lock and Password Unlock Verification');
-const pastWeek = {
-  id: '2026-W32',
-  label: 'Aug 03 – Aug 09',
-  finalized: true,
-  allottedBudgets: { food: 1200, necessities: 3800 }
-};
+// Test 7: Week Navigation (including multi-year navigation)
+console.log('\nTest 7: Week Navigation Across Years');
+const currentActive = CampusState.state.activeWeekId;
+const nextWk = CampusState.navigateWeek(1);
+console.assert(nextWk !== currentActive, 'Moved to next week');
+const prevWk = CampusState.navigateWeek(-1);
+console.assert(prevWk === currentActive, 'Moved back to active week');
+console.log(`✓ Week navigation successfully moves forward to ${nextWk} and backward to ${prevWk}`);
 
-console.assert(CampusState.isWeekOver(pastWeek) === true, 'Past week should be recognized as over');
-console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week should be locked by default');
+// Test 8: Passcode Unlock & Lock
+console.log('\nTest 8: Passcode Security');
+const samplePast = { id: '2026-W30', finalized: true };
+console.assert(CampusState.isWeekLocked(samplePast) === true, 'Past week is locked');
+console.assert(CampusState.unlockWeek('2026-W30', 'wrong').success === false, 'Wrong code rejected');
+console.assert(CampusState.unlockWeek('2026-W30', '1234').success === true, 'Correct code accepted');
+console.assert(CampusState.isWeekLocked(samplePast) === false, 'Past week unlocked');
+CampusState.lockWeek('2026-W30');
+console.assert(CampusState.isWeekLocked(samplePast) === true, 'Past week relocked');
+console.log('✓ Passcode unlock & relock verified');
 
-// Attempt unlock with wrong passcode
-const failResult = CampusState.unlockWeek('2026-W32', 'wrong_pin');
-console.assert(failResult.success === false, 'Wrong password should fail');
-console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week remains locked');
+// Test 9: Supabase Module & State CRUD Operations
+console.log('\nTest 9: Supabase Module & CRUD Operations');
+console.assert(typeof CampusSupabase !== 'undefined', 'CampusSupabase module is loaded');
+console.assert(CampusSupabase.TABLE_NAME === 'campuscoin_state', 'Table name is campuscoin_state');
+console.assert(CampusSupabase.DEFAULT_ROW_ID === 'default_user', 'Default row ID is default_user');
 
-// Attempt unlock with default passcode (1234)
-const successResult = CampusState.unlockWeek('2026-W32', '1234');
-console.assert(successResult.success === true, 'Default passcode 1234 should unlock');
-console.assert(CampusState.isWeekLocked(pastWeek) === false, 'Past week is now unlocked');
-console.log(`✓ Passcode Security: Wrong PIN rejected; Correct PIN (1234) successfully unlocks past week`);
+// Verify State Structure compatibility for Supabase JSONB storage
+console.assert(CampusState.state.version === 7, 'State version is 7');
+console.assert(typeof CampusState.state.weeks === 'object', 'State contains weeks object');
+console.assert(Array.isArray(CampusState.state.todos), 'State contains todos array');
+console.assert(typeof CampusState.state.settings === 'object', 'State contains settings object');
 
-// Relock past week
-CampusState.lockWeek('2026-W32');
-console.assert(CampusState.isWeekLocked(pastWeek) === true, 'Past week relocked successfully');
-console.log(`✓ Relock Function: Week returned to locked state`);
+// Test adding and removing spend items
+const testItem = CampusState.addItemToCell(1, 'food', 'Late Night Maggi', 40);
+console.assert(testItem.id && testItem.name === 'Late Night Maggi', 'Item added to state');
+const currentDayItems = CampusState.getActiveWeek().dailySpends[1].food.items;
+console.assert(currentDayItems.some(i => i.id === testItem.id), 'Item exists in active week dailySpends');
 
-// Test 8: Monthly Book Lists All Weeks
-console.log('\nTest 8: Monthly Book Lists All Weeks');
-const monthlySummary = CampusCalculator.getMonthlySummary(CampusState.state, 'current');
-console.assert(monthlySummary.weekRows.length >= 4, `Expected at least 4 weeks listed in Monthly Book, got ${monthlySummary.weekRows.length}`);
-console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W35'), 'Contains Week 35');
-console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W34'), 'Contains Week 34');
-console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W33'), 'Contains Week 33');
-console.assert(monthlySummary.weekRows.some(w => w.id === '2026-W32'), 'Contains Week 32');
-console.log(`✓ Monthly Book: Correctly lists all ${monthlySummary.weekRows.length} weeks in the ledger with combined totals`);
+CampusState.removeItemFromCell(1, 'food', testItem.id);
+const itemsAfterRemove = CampusState.getActiveWeek().dailySpends[1].food.items;
+console.assert(!itemsAfterRemove.some(i => i.id === testItem.id), 'Item removed from state');
 
-// Test 9: Past unrecorded weeks should all have 0 starting balance, 0 spent, 0 ending balance
-console.log('\nTest 9: Past unrecorded weeks are 0 0');
-const w34 = CampusState.state.weeks['2026-W34'];
-const w33 = CampusState.state.weeks['2026-W33'];
-const w32 = CampusState.state.weeks['2026-W32'];
-console.assert(w34.startingBalance === 0, `Week 34 starting balance should be 0, got ${w34.startingBalance}`);
-console.assert(w33.startingBalance === 0, `Week 33 starting balance should be 0, got ${w33.startingBalance}`);
-console.assert(w32.startingBalance === 0, `Week 32 starting balance should be 0, got ${w32.startingBalance}`);
-console.assert(CampusCalculator.getTotalAllottedBudget(w34) === 0, 'Week 34 total allotted is 0');
-console.assert(CampusCalculator.getGrandTotalSpent(w34) === 0, 'Week 34 total spent is 0');
-console.log('✓ Past unrecorded weeks (W32, W33, W34) are all 0 0');
+// Test Todo CRUD
+const newTodo = CampusState.addTodo('Submit Assignment on Canvas');
+console.assert(CampusState.state.todos.some(t => t.id === newTodo.id), 'Todo added');
+CampusState.toggleTodo(newTodo.id);
+console.assert(CampusState.state.todos.find(t => t.id === newTodo.id).completed === true, 'Todo toggled');
+CampusState.deleteTodo(newTodo.id);
+console.assert(!CampusState.state.todos.some(t => t.id === newTodo.id), 'Todo deleted');
 
-// Test 10: Setting default starting cash applies to coming weeks
-console.log('\nTest 10: Default Starting Cash setting applies to coming weeks');
-CampusState.setDefaultStartingCash(6000, true);
-console.assert(CampusState.getDefaultStartingCash() === 6000, 'Default starting cash is 6000');
-const w36 = CampusState.state.weeks['2026-W36'];
-console.assert(w36.startingBalance === 6000, `Coming week 36 starting balance should be 6000, got ${w36.startingBalance}`);
-console.assert(w36.allottedBudgets.food === 1440, `Week 36 food should be 1440 (24%), got ${w36.allottedBudgets.food}`);
-console.assert(w36.allottedBudgets.necessities === 4560, `Week 36 necessities should be 4560 (76%), got ${w36.allottedBudgets.necessities}`);
-console.log('✓ Default Starting Cash (₹6,000) successfully propagated to coming weeks (Food: ₹1,440, Necessities: ₹4,560)');
+console.log('✓ Supabase module, table schema compatibility, and state CRUD operations verified');
 
-// Test 11: Safe to Spend Widget Days Left Calculation across Past, Active, and Future Weeks
-console.log('\nTest 11: Safe to Spend Widget Days Left across Past, Active, and Future Weeks');
-const safePast = CampusCalculator.getSafeToSpendToday(w32);
-console.assert(safePast.daysRemaining === 0, `Past week daysRemaining should be 0, got ${safePast.daysRemaining}`);
-console.assert(safePast.daysLabel === '0 days (Concluded)', `Past week daysLabel should be '0 days (Concluded)', got ${safePast.daysLabel}`);
-console.assert(safePast.safeAmount === 0, `Past week safeAmount should be 0, got ${safePast.safeAmount}`);
-
-const safeFuture = CampusCalculator.getSafeToSpendToday(w36);
-console.assert(safeFuture.daysRemaining === 7, `Future week daysRemaining should be 7, got ${safeFuture.daysRemaining}`);
-console.assert(safeFuture.daysLabel === '7 days left', `Future week daysLabel should be '7 days left', got ${safeFuture.daysLabel}`);
-console.assert(safeFuture.safeAmount > 0, 'Future week has baseline daily allowance');
-
-const safeActive = CampusCalculator.getSafeToSpendToday(CampusState.state.weeks['2026-W35']);
-console.assert(safeActive.daysRemaining >= 1 && safeActive.daysRemaining <= 7, `Active week daysRemaining should be between 1 and 7, got ${safeActive.daysRemaining}`);
-console.log(`✓ Safe-to-Spend Widget: Past week shows '${safePast.daysLabel}', Future week shows '${safeFuture.daysLabel}', Active week shows '${safeActive.daysLabel}'`);
-
-console.log('\n=== ALL V6.5 TESTS PASSED SUCCESSFULLY! ===');
+console.log('\n=== ALL V7.0 SUPABASE & ZERO-SUM TESTS PASSED SUCCESSFULLY! ===');

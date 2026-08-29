@@ -8,11 +8,12 @@
 
 ## 🚀 Key Features
 
-### 1. Data Storage & Persistence (Zero Backend Required)
-- **Automatic Local Storage**: All inputs, allotted budgets, surprise anomalies, and preferences are automatically and instantly saved into browser `localStorage` on every keystroke.
+### 1. Data Storage & Persistence (Supabase PostgreSQL Cloud)
+- **Direct Supabase Cloud Persistence**: All inputs, allotted budgets, surprise anomalies, and preferences are automatically synced to your Supabase database in real-time.
+- **Multi-Device / Multi-Tab Live Sync**: Built-in PostgreSQL real-time listeners keep all open tabs and devices synchronized.
 - **Backup & Restore System**:
   - **Export Backup**: Downloads complete historical data, weeks, and ledger as a `budget_data.json` file.
-  - **Import Backup**: Uploads and validates a JSON file to restore state on any device instantly.
+  - **Import Backup**: Uploads and validates a JSON file to restore state into Supabase instantly.
 - **Hard Reset**: Double-confirmed "Clear All Data" option with one-click "Load Sample Student Data" preview.
 
 ### 2. Core Interface & Weekly Planner Table
@@ -40,11 +41,42 @@
 
 ---
 
+## 🛠️ Supabase Setup Guide
 
+### 1. Configure `.env.local`
+Add your Supabase project credentials in `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 ```
 
+### 2. Run SQL in Supabase SQL Editor
+Open your Supabase dashboard, go to the **SQL Editor**, and run the following script:
+```sql
+-- 1. Create the CampusCoin state table
+CREATE TABLE IF NOT EXISTS campuscoin_state (
+    id TEXT PRIMARY KEY DEFAULT 'default_user',
+    state JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Disable Row Level Security (RLS)
+ALTER TABLE campuscoin_state DISABLE ROW LEVEL SECURITY;
+
+-- 3. Enable Realtime broadcasting for live multi-device syncing
+ALTER PUBLICATION supabase_realtime ADD TABLE campuscoin_state;
+
+-- 4. Seed initial default record placeholder
+INSERT INTO campuscoin_state (id, state, updated_at)
+VALUES ('default_user', '{}'::jsonb, now())
+ON CONFLICT (id) DO NOTHING;
 ```
 
+---
 
-
-
+## 🚀 Running Locally
+```bash
+npm install
+npm test
+npm run dev
+```

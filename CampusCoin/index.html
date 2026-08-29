@@ -448,9 +448,9 @@
 
           <!-- Bottom Actions Bar -->
           <div class="table-card-footer">
-            <div class="sync-status-indicator">
-              <i data-lucide="check-circle" class="sync-ok-icon"></i>
-              <span>Zero-Sum Auto-saved to localStorage</span>
+            <div class="sync-status-indicator" id="supabase-sync-badge" title="Live Supabase Database Sync Status">
+              <i data-lucide="cloud" class="sync-ok-icon" id="supabase-status-icon"></i>
+              <span id="supabase-status-text">Supabase Cloud Synced</span>
             </div>
             <div class="table-footer-actions">
               <button id="reset-week-btn" class="btn-ghost-danger" title="Clear current week entries">
@@ -472,12 +472,34 @@
         <div class="planner-card">
           <div class="planner-card-header">
             <div>
-              <h2 class="card-headline">Monthly Book & Macro Ledger</h2>
-              <p class="card-subhead">Consolidated summary of all finalized weekly budgets and net savings.</p>
+              <h2 class="card-headline">Monthly Book
+              </h2>
+              <p class="card-subhead">Consolidated 4-week breakdown & savings summary for all 12 months.</p>
             </div>
-            <button id="add-current-to-monthly-btn" class="btn-subtle">
-              <i data-lucide="plus"></i> Add Current Week
-            </button>
+            <div class="monthly-header-controls"
+              style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <div class="month-selector-wrapper">
+                <select id="monthly-book-month-select" class="form-select month-picker-select"
+                  aria-label="Select Month">
+                  <option value="2026-01">January 2026</option>
+                  <option value="2026-02">February 2026</option>
+                  <option value="2026-03">March 2026</option>
+                  <option value="2026-04">April 2026</option>
+                  <option value="2026-05">May 2026</option>
+                  <option value="2026-06">June 2026</option>
+                  <option value="2026-07">July 2026</option>
+                  <option value="2026-08" selected>August 2026 (Active)</option>
+                  <option value="2026-09">September 2026</option>
+                  <option value="2026-10">October 2026</option>
+                  <option value="2026-11">November 2026</option>
+                  <option value="2026-12">December 2026</option>
+                  <option value="all">Full Year (All 12 Months)</option>
+                </select>
+              </div>
+              <button id="add-current-to-monthly-btn" class="btn-subtle">
+                <i data-lucide="plus"></i> Add Current Week
+              </button>
+            </div>
           </div>
 
           <!-- Monthly Macro KPI Grid -->
@@ -984,11 +1006,34 @@
       </div>
 
       <div class="settings-content-flow">
+        <!-- Supabase Cloud Database Section -->
+        <div class="settings-block">
+          <h4 class="settings-block-title">
+            <i data-lucide="database" class="inline-icon"></i>
+            <span>Supabase Cloud Database</span>
+          </h4>
+          <p class="settings-block-desc">
+            Directly connected to your Supabase PostgreSQL database using <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> from <code>.env.local</code>.
+          </p>
+          <div class="supabase-status-box" id="supabase-modal-status-box">
+            <div class="supabase-status-line">
+              <span class="status-indicator-dot" id="supabase-modal-dot"></span>
+              <span id="supabase-modal-status-title" class="font-bold">Checking Supabase connection...</span>
+            </div>
+            <div class="supabase-url-info" id="supabase-modal-url-text">Loading URL...</div>
+            <div class="supabase-actions-row">
+              <button type="button" id="btn-test-supabase" class="btn-subtle btn-sm">
+                <i data-lucide="refresh-cw"></i> Test Connection
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-block">
           <h4 class="settings-block-title">Data Backup & Restore</h4>
           <p class="settings-block-desc">
-            All data is saved automatically in your browser's localStorage. Export a backup JSON to safeguard your
-            budgets or transfer across devices.
+            All data is saved automatically to your Supabase PostgreSQL cloud database. Export a backup JSON to safeguard your
+            budgets or transfer offline.
           </p>
 
           <div class="backup-btn-grid">
@@ -1002,7 +1047,7 @@
 
             <div class="backup-action-box">
               <strong>Import Backup</strong>
-              <p>Restore history from existing JSON file.</p>
+              <p>Restore history from existing JSON file to Supabase.</p>
               <label for="import-backup-file" class="btn-subtle file-label">
                 <i data-lucide="upload"></i> Select Backup File
               </label>
@@ -1161,6 +1206,8 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/state.js"></script>
   <script src="js/calculator.js"></script>
   <script src="js/insights.js"></script>

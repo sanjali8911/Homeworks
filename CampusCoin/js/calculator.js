@@ -1,8 +1,9 @@
 /**
- * CampusCoin Financial Calculator Engine (V5 - Zero-Sum & Live Balance Rows)
+ * CampusCoin Financial Calculator Engine (V6.5 - Dynamic Calendar & Zero-Sum)
  * - Supreme Lord: Starting Cash dictates total pool
- * - Category Balances = Allotted - Spent for Food, Necessities, Clothes, Recreation, Other
+ * - Category Balances = Allotted - Spent for Food & Necessities
  * - Budget availability and borrowing deficit checker
+ * - Dynamic Monthly Summary with Wednesday-based Month Filtering
  */
 
 const CampusCalculator = {
@@ -277,12 +278,38 @@ const CampusCalculator = {
     };
   },
 
-  getMonthlySummary(state, targetMonthId) {
-    const weeks = state.weeks || {};
+  /**
+   * Generates a monthly summary for a specific targetMonthId (e.g. '2026-08', '2026-09', '2027-01')
+   * Uses Wednesday Rule: gets all 4 (or 5) weeks where Wednesday falls in that month!
+   */
+  getMonthlySummary(state, targetMonthId = 'current') {
+    const weeks = (state && state.weeks) ? state.weeks : {};
+    const currentCalWeekId = getWeekIdentifier(new Date());
 
-    // List all weeks registered in the state, sorted newest first
-    let includedWeekIds = Object.keys(weeks);
-    includedWeekIds.sort((a, b) => b.localeCompare(a));
+    let resolvedMonthId = targetMonthId;
+    if (!resolvedMonthId || resolvedMonthId === 'current') {
+      const activeWeek = (state && state.activeWeekId && weeks[state.activeWeekId]) ? weeks[state.activeWeekId] : null;
+      const info = activeWeek ? getWeekDateInfo(activeWeek.id) : getWeekDateInfo(currentCalWeekId);
+      resolvedMonthId = info.monthId;
+    }
+
+    const parts = resolvedMonthId.split('-');
+    const year = parseInt(parts[0], 10) || new Date().getFullYear();
+    const monthNum = parseInt(parts[1], 10) || (new Date().getMonth() + 1);
+    const monthIndex = monthNum - 1;
+
+    // Retrieve all weeks belonging to this month via Wednesday Rule
+    const monthWeeksInfo = getWeeksForMonth(year, monthIndex);
+    const monthLabel = (monthWeeksInfo.length > 0)
+      ? monthWeeksInfo[0].monthLabel
+      : new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    let defaultCash = 7500;
+    if (typeof window !== 'undefined' && window.CampusState && typeof window.CampusState.getDefaultStartingCash === 'function') {
+      defaultCash = window.CampusState.getDefaultStartingCash();
+    } else if (state && state.settings && state.settings.defaultStartingCash !== undefined) {
+      defaultCash = parseFloat(state.settings.defaultStartingCash) || 7500;
+    }
 
     let totalAllotted = 0;
     let totalSpent = 0;
@@ -294,36 +321,39 @@ const CampusCalculator = {
 
     const weekRows = [];
 
-    includedWeekIds.forEach(wId => {
-      const w = weeks[wId];
-      if (w) {
-        const wAllotted = this.getTotalAllottedBudget(w);
-        const wSpent = this.getGrandTotalSpent(w);
-        const wSurp = this.getSurprisesTotal(w);
-        const wEnd = this.getEndingBalance(w);
-        const wCatTotals = this.getCategoryTotals(w);
+    monthWeeksInfo.forEach(wInfo => {
+      const wId = wInfo.weekId;
+      let w = weeks[wId];
 
-        totalAllotted += wAllotted;
-        totalSpent += wSpent;
-        totalSurprises += wSurp;
-
-        CATEGORIES.forEach(cat => {
-          categoryTotals[cat.id] += (wCatTotals[cat.id] || 0);
-        });
-
-        const info = (typeof getWeekDateInfo === 'function') ? getWeekDateInfo(w.id) : null;
-        const weekLabel = (w.label && w.label.includes('(')) ? w.label : (info ? info.fullLabel : `Week ${w.id}`);
-
-        weekRows.push({
-          id: w.id,
-          label: weekLabel,
-          allotted: wAllotted,
-          spent: wSpent,
-          surprises: wSurp,
-          endingBalance: wEnd,
-          finalized: w.finalized
-        });
+      if (!w) {
+        // If week doesn't exist yet in state.weeks, construct a preview week
+        const startVal = (wId >= currentCalWeekId) ? defaultCash : 0;
+        w = createEmptyWeek(wId, wInfo.fullLabel, wInfo.startDate, startVal);
       }
+
+      const wAllotted = this.getTotalAllottedBudget(w);
+      const wSpent = this.getGrandTotalSpent(w);
+      const wSurp = this.getSurprisesTotal(w);
+      const wEnd = this.getEndingBalance(w);
+      const wCatTotals = this.getCategoryTotals(w);
+
+      totalAllotted += wAllotted;
+      totalSpent += wSpent;
+      totalSurprises += wSurp;
+
+      CATEGORIES.forEach(cat => {
+        categoryTotals[cat.id] += (wCatTotals[cat.id] || 0);
+      });
+
+      weekRows.push({
+        id: w.id,
+        label: wInfo.monthRelativeLabel || w.label || wInfo.fullLabel,
+        allotted: wAllotted,
+        spent: wSpent,
+        surprises: wSurp,
+        endingBalance: wEnd,
+        finalized: w.finalized
+      });
     });
 
     const netSavings = totalAllotted - totalSpent;
@@ -331,7 +361,8 @@ const CampusCalculator = {
     const spendPct = totalAllotted > 0 ? ((totalSpent / totalAllotted) * 100).toFixed(1) : '0.0';
 
     return {
-      monthId: targetMonthId,
+      monthId: resolvedMonthId,
+      monthLabel,
       totalAllotted: parseFloat(totalAllotted.toFixed(2)),
       totalSpent: parseFloat(totalSpent.toFixed(2)),
       totalSurprises: parseFloat(totalSurprises.toFixed(2)),

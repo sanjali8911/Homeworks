@@ -13,6 +13,7 @@ let activeCellModalDay = 0;
 let activeCellModalCat = 'food';
 let calPickerYear = new Date().getFullYear();
 let calPickerMonth = new Date().getMonth(); // 0-indexed
+let selectedMonthlyBookMonth = null;
 let pendingBorrowing = null;
 let pendingBudgetChange = null;
 let pendingActionAfterUnlock = null;
@@ -30,6 +31,12 @@ function initApp() {
     renderAll();
   });
 
+  // Initialize Supabase Database Connection & Cloud Sync
+  setupSupabaseSyncUI();
+  CampusState.init().then(() => {
+    renderAll();
+  });
+
   setupTableEventListeners();
   setupNavigation();
   setupModals();
@@ -38,8 +45,69 @@ function initApp() {
   setupTodoWidget();
   setupCampusAIDrawer();
   setupCalendarPopover();
+  setupMonthlyBookControls();
   setupBorrowingModal();
   setupUnlockWeekModal();
+}
+
+/**
+ * Supabase Connection & Sync Status Indicator Handler
+ */
+function setupSupabaseSyncUI() {
+  const updateUI = (info) => {
+    const textEl = document.getElementById('supabase-status-text');
+    const iconEl = document.getElementById('supabase-status-icon');
+    const modalDot = document.getElementById('supabase-modal-dot');
+    const modalTitle = document.getElementById('supabase-modal-status-title');
+    const modalUrl = document.getElementById('supabase-modal-url-text');
+
+    const status = info.status || 'synced';
+    const credentials = (window.CampusSupabase && window.CampusSupabase.getCredentials) ? window.CampusSupabase.getCredentials() : {};
+
+    if (modalUrl) {
+      modalUrl.textContent = credentials.url ? `URL: ${credentials.url}` : 'URL: Not configured in .env.local';
+    }
+
+    if (modalDot) {
+      modalDot.className = 'status-indicator-dot ' + status;
+    }
+
+    if (status === 'synced' || status === 'connected') {
+      if (textEl) textEl.textContent = 'Supabase Cloud Synced';
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', 'cloud');
+        iconEl.style.color = '#10b981';
+      }
+      if (modalTitle) modalTitle.textContent = 'Connected to Supabase PostgreSQL Database';
+    } else if (status === 'syncing' || status === 'connecting') {
+      if (textEl) textEl.textContent = 'Saving to Supabase...';
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', 'refresh-cw');
+        iconEl.style.color = '#3b82f6';
+      }
+      if (modalTitle) modalTitle.textContent = 'Synchronizing with Supabase...';
+    } else if (status === 'unconfigured') {
+      if (textEl) textEl.textContent = 'Supabase: Setup .env.local';
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', 'alert-triangle');
+        iconEl.style.color = '#f59e0b';
+      }
+      if (modalTitle) modalTitle.textContent = 'Credentials pending in .env.local';
+    } else if (status === 'error') {
+      if (textEl) textEl.textContent = 'Supabase Sync Error';
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', 'alert-circle');
+        iconEl.style.color = '#ef4444';
+      }
+      if (modalTitle) modalTitle.textContent = info.message || 'Supabase Connection Error';
+    }
+
+    if (window.lucide) lucide.createIcons();
+  };
+
+  if (CampusState.onSyncStatusChange) {
+    CampusState.onSyncStatusChange(updateUI);
+  }
 }
 
 /**
@@ -69,7 +137,7 @@ function renderAll() {
   renderMonthlyBook(state, currency);
 
   // 6. Interactive Charts
-  CampusCharts.updateCharts(week, state);
+  CampusCharts.updateCharts(week, state, selectedMonthlyBookMonth);
 
   if (window.lucide) lucide.createIcons();
 }
@@ -887,6 +955,10 @@ function setupCalendarPopover() {
 
   if (trigger && popover) {
     trigger.addEventListener('click', () => {
+      const activeWeek = CampusState.getActiveWeek();
+      const activeWeekInfo = getWeekDateInfo(activeWeek.id);
+      calPickerYear = activeWeekInfo.year;
+      calPickerMonth = activeWeekInfo.monthIndex;
       renderCalendarMonthGrid(calPickerYear, calPickerMonth);
       popover.classList.remove('hidden');
     });
@@ -902,10 +974,12 @@ function setupCalendarPopover() {
   if (jumpTodayBtn) {
     jumpTodayBtn.addEventListener('click', () => {
       const today = new Date();
-      calPickerYear = today.getFullYear();
-      calPickerMonth = today.getMonth();
       const currentId = getWeekIdentifier(today);
+      const currentInfo = getWeekDateInfo(currentId);
+      calPickerYear = currentInfo.year;
+      calPickerMonth = currentInfo.monthIndex;
       CampusState.setActiveWeek(currentId);
+      selectedMonthlyBookMonth = currentInfo.monthId;
       popover.classList.add('hidden');
       CampusNotifications.showToast('Jumped to current week', 'info');
     });
@@ -971,13 +1045,12 @@ function renderCalendarMonthGrid(year, month) {
       const weekId = getWeekIdentifier(selectedDate);
       
       if (!CampusState.state.weeks[weekId]) {
-        const dStart = new Date(selectedDate);
-        dStart.setDate(dStart.getDate() - dStart.getDay());
-        const label = `Week ${weekId.split('-W')[1]} (${dStart.toLocaleString('default', { month: 'short' })} ${dStart.getDate()})`;
-        CampusState.state.weeks[weekId] = createEmptyWeek(weekId, label, dStart.toISOString().split('T')[0]);
+        const info = getWeekDateInfo(weekId);
+        CampusState.state.weeks[weekId] = createEmptyWeek(weekId, info.fullLabel, info.startDate);
       }
 
       CampusState.setActiveWeek(weekId);
+      selectedMonthlyBookMonth = getWeekMonthInfo(weekId).monthId;
       document.getElementById('calendar-popover')?.classList.add('hidden');
       switchTab('weekly-tab');
       CampusNotifications.showToast(`Opened ${weekId} Logbook!`, 'info');
@@ -1298,7 +1371,7 @@ function switchTab(tabId) {
 
   if (tabId === 'monthly-tab' || tabId === 'analytics-tab') {
     setTimeout(() => {
-      CampusCharts.updateCharts();
+      CampusCharts.updateCharts(CampusState.getActiveWeek(), CampusState.state, selectedMonthlyBookMonth);
     }, 60);
   }
 }
@@ -1545,6 +1618,29 @@ function setupExportActions() {
  * 14. Settings & Backups
  */
 function setupSettingsActions() {
+  const testSupabaseBtn = document.getElementById('btn-test-supabase');
+  if (testSupabaseBtn) {
+    testSupabaseBtn.addEventListener('click', async () => {
+      testSupabaseBtn.disabled = true;
+      testSupabaseBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Testing...';
+      if (window.lucide) lucide.createIcons();
+
+      if (window.CampusSupabase) {
+        const res = await window.CampusSupabase.testConnection();
+        if (res.success) {
+          CampusNotifications.showToast(res.message, 'success');
+          CampusNotifications.playChime('success');
+        } else {
+          CampusNotifications.showToast(`Supabase Error: ${res.message}`, 'error');
+        }
+      }
+
+      testSupabaseBtn.disabled = false;
+      testSupabaseBtn.innerHTML = '<i data-lucide="refresh-cw"></i> Test Connection';
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+
   const exportBackupBtn = document.getElementById('export-backup-btn');
   if (exportBackupBtn) {
     exportBackupBtn.addEventListener('click', () => {
@@ -1679,10 +1775,113 @@ function setupSettingsActions() {
 }
 
 /**
- * 15. Monthly Book Tab Render
+ * 15. Monthly Book Tab Render & Month Selector
  */
+function setupMonthlyBookControls() {
+  const selectEl = document.getElementById('monthly-month-select');
+  const prevBtn = document.getElementById('monthly-prev-month-btn');
+  const nextBtn = document.getElementById('monthly-next-month-btn');
+
+  if (selectEl) {
+    selectEl.addEventListener('change', (e) => {
+      selectedMonthlyBookMonth = e.target.value;
+      renderMonthlyBook(CampusState.state, CampusState.getCurrency());
+      CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
+      CampusNotifications.showToast(`Showing Monthly Book for ${selectEl.options[selectEl.selectedIndex]?.text || selectedMonthlyBookMonth}`, 'info');
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      navigateMonthlyBookMonth(-1);
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      navigateMonthlyBookMonth(1);
+    });
+  }
+}
+
+function navigateMonthlyBookMonth(offset) {
+  if (!selectedMonthlyBookMonth) {
+    const activeWeek = CampusState.getActiveWeek();
+    selectedMonthlyBookMonth = getWeekMonthInfo(activeWeek.id).monthId;
+  }
+  const [yStr, mStr] = selectedMonthlyBookMonth.split('-');
+  let year = parseInt(yStr, 10);
+  let monthIndex = parseInt(mStr, 10) - 1;
+
+  monthIndex += offset;
+  if (monthIndex < 0) {
+    monthIndex = 11;
+    year -= 1;
+  } else if (monthIndex > 11) {
+    monthIndex = 0;
+    year += 1;
+  }
+
+  selectedMonthlyBookMonth = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  renderMonthlyBook(CampusState.state, CampusState.getCurrency());
+  CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
+}
+
+function populateMonthlyBookDropdown(state, currentSelectedMonthId) {
+  const selectEl = document.getElementById('monthly-month-select');
+  if (!selectEl) return;
+
+  const monthsMap = new Map();
+
+  const today = new Date();
+  const startMonthDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + i, 1);
+    const mId = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const mLabel = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    monthsMap.set(mId, mLabel);
+  }
+
+  if (state && state.weeks) {
+    Object.keys(state.weeks).forEach(wId => {
+      const info = getWeekDateInfo(wId);
+      if (info && info.monthId) {
+        monthsMap.set(info.monthId, info.monthLabel);
+      }
+    });
+  }
+
+  if (currentSelectedMonthId && !monthsMap.has(currentSelectedMonthId)) {
+    const [y, m] = currentSelectedMonthId.split('-');
+    const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+    monthsMap.set(currentSelectedMonthId, d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+  }
+
+  const sortedMonthIds = Array.from(monthsMap.keys()).sort();
+
+  selectEl.innerHTML = '';
+  sortedMonthIds.forEach(mId => {
+    const opt = document.createElement('option');
+    opt.value = mId;
+    opt.textContent = monthsMap.get(mId);
+    if (mId === currentSelectedMonthId) {
+      opt.selected = true;
+    }
+    selectEl.appendChild(opt);
+  });
+
+  selectEl.value = currentSelectedMonthId;
+}
+
 function renderMonthlyBook(state, currency) {
-  const summary = CampusCalculator.getMonthlySummary(state, 'current');
+  if (!selectedMonthlyBookMonth) {
+    const activeWeek = CampusState.getActiveWeek();
+    selectedMonthlyBookMonth = getWeekMonthInfo(activeWeek.id).monthId;
+  }
+
+  populateMonthlyBookDropdown(state, selectedMonthlyBookMonth);
+
+  const summary = CampusCalculator.getMonthlySummary(state, selectedMonthlyBookMonth);
 
   const allottedEl = document.getElementById('monthly-total-allotted');
   const spentEl = document.getElementById('monthly-total-spent');
@@ -1712,7 +1911,7 @@ function renderMonthlyBook(state, currency) {
 
   tbody.innerHTML = '';
   if (summary.weekRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1.5rem; color: var(--text-muted);">No finalized weeks yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1.5rem; color: var(--text-muted);">No weeks found for ${summary.monthLabel}.</td></tr>`;
     return;
   }
 

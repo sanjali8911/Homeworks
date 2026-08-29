@@ -1,13 +1,15 @@
 /**
- * CampusCoin State Management & LocalStorage Persistence (V6 - Complete Zero-Sum Model)
+ * CampusCoin State Management & Supabase Database Persistence (V7.0)
  * - Supreme Lord: Starting Cash dictates the entire pool.
  * - 24% to Food, 76% (remainder) to Necessities.
- * - Clothes, Recreation, Other ALL default to 0 allotted and are collapsible.
- * - Zero-sum borrowing from Necessities for Food, Clothes, Recreation, and Other.
- * - Borrowed items rendered in red with ⚡ Borrowed badge.
+ * - Wednesday Rule: A week belongs to the month/year where its Wednesday lies.
+ * - Dynamic week/month calculations for any month in 2026, 2027, and beyond.
+ * - Zero-sum borrowing from Necessities for Food and other categories.
+ * - Direct Supabase PostgreSQL Cloud Persistence (CRUD + Realtime Sync).
  */
 
-const STORAGE_KEY = 'campuscoin_student_finance_v6';
+const DB_TABLE_NAME = 'campuscoin_state';
+const DB_ROW_ID = 'default_user';
 
 const CATEGORIES = [
   { id: 'food', name: 'Food', emoji: '🍛', defaultPct: 0.24 },
@@ -24,25 +26,132 @@ const DAYS_OF_WEEK = [
   { index: 6, name: 'Saturday', short: 'Sat' }
 ];
 
-function getWeekDateInfo(weekId) {
-  if (!weekId || !weekId.includes('-W')) {
+/**
+ * Given any Date or date string, returns the Sunday Date object (00:00:00) of that week
+ */
+function getSundayOfWeek(d = new Date()) {
+  const date = (typeof d === 'string') ? new Date(d + (d.length === 10 ? 'T00:00:00' : '')) : new Date(d);
+  const sun = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  sun.setDate(sun.getDate() - sun.getDay());
+  return sun;
+}
+
+/**
+ * Given a Sunday Date object, returns the Wednesday Date object (+3 days)
+ */
+function getWednesdayOfWeek(sundayDate) {
+  const wed = new Date(sundayDate);
+  wed.setDate(sundayDate.getDate() + 3);
+  return wed;
+}
+
+/**
+ * Given a Sunday Date object, returns the Saturday Date object (+6 days)
+ */
+function getSaturdayOfWeek(sundayDate) {
+  const sat = new Date(sundayDate);
+  sat.setDate(sundayDate.getDate() + 6);
+  return sat;
+}
+
+/**
+ * Given a date or weekId, calculates which month it belongs to based on the Wednesday Rule
+ */
+function getWeekMonthInfo(dateOrWeekId) {
+  let sunday;
+  if (typeof dateOrWeekId === 'string' && dateOrWeekId.includes('-W')) {
+    const info = getWeekDateInfo(dateOrWeekId);
     return {
-      startDate: '2026-08-23',
-      fullLabel: weekId || 'Current Week'
+      monthId: info.monthId,
+      monthLabel: info.monthLabel,
+      monthIndex: info.monthIndex,
+      year: info.year
+    };
+  } else {
+    sunday = getSundayOfWeek(dateOrWeekId);
+  }
+
+  const wed = getWednesdayOfWeek(sunday);
+  const year = wed.getFullYear();
+  const monthIndex = wed.getMonth();
+  const monthNum = String(monthIndex + 1).padStart(2, '0');
+  const monthId = `${year}-${monthNum}`;
+  const monthLabel = wed.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  return { monthId, monthLabel, monthIndex, year };
+}
+
+/**
+ * Returns the week identifier 'YYYY-Www' for any given date
+ * Year and week number are determined by the Wednesday of that week.
+ */
+function getWeekIdentifier(d = new Date()) {
+  const sun = getSundayOfWeek(d);
+  const wed = getWednesdayOfWeek(sun);
+  const year = wed.getFullYear();
+
+  // Find the Sunday of the week that contains the first Wednesday of the year
+  const jan1 = new Date(year, 0, 1);
+  const firstWed = new Date(jan1);
+  firstWed.setDate(jan1.getDate() + ((3 - jan1.getDay() + 7) % 7));
+  const firstSun = new Date(firstWed);
+  firstSun.setDate(firstWed.getDate() - 3);
+
+  const diffMs = sun.getTime() - firstSun.getTime();
+  const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+  const weekNum = Math.floor(diffDays / 7) + 1;
+
+  return `${year}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+/**
+ * Returns detailed date and month information for a given weekId ('YYYY-Www')
+ */
+function getWeekDateInfo(weekId) {
+  if (!weekId || typeof weekId !== 'string' || !weekId.includes('-W')) {
+    const todaySun = getSundayOfWeek(new Date());
+    const todayWed = getWednesdayOfWeek(todaySun);
+    const todaySat = getSaturdayOfWeek(todaySun);
+    const y = todaySun.getFullYear();
+    const m = String(todaySun.getMonth() + 1).padStart(2, '0');
+    const d = String(todaySun.getDate()).padStart(2, '0');
+    const startMonth = todaySun.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = String(todaySun.getDate()).padStart(2, '0');
+    const endMonth = todaySat.toLocaleDateString('en-US', { month: 'short' });
+    const endDay = String(todaySat.getDate()).padStart(2, '0');
+    const dateRangeStr = (startMonth === endMonth)
+      ? `${startMonth} ${startDay} – ${startMonth} ${endDay}`
+      : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
+
+    return {
+      weekId: weekId || getWeekIdentifier(),
+      weekNum: 1,
+      year: y,
+      startDate: `${y}-${m}-${d}`,
+      dateRangeStr,
+      monthId: `${todayWed.getFullYear()}-${String(todayWed.getMonth() + 1).padStart(2, '0')}`,
+      monthLabel: todayWed.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      monthIndex: todayWed.getMonth(),
+      fullLabel: `Week (${dateRangeStr})`
     };
   }
+
   const parts = weekId.split('-W');
   const year = parseInt(parts[0], 10);
   const weekNum = parseInt(parts[1], 10);
 
-  const firstSun = new Date(year, 0, 1);
-  firstSun.setDate(1 - firstSun.getDay());
+  // Find the first Sunday of the week with the first Wednesday in that year
+  const jan1 = new Date(year, 0, 1);
+  const firstWed = new Date(jan1);
+  firstWed.setDate(jan1.getDate() + ((3 - jan1.getDay() + 7) % 7));
+  const firstSun = new Date(firstWed);
+  firstSun.setDate(firstWed.getDate() - 3);
 
   const targetSun = new Date(firstSun);
   targetSun.setDate(firstSun.getDate() + (weekNum - 1) * 7);
 
-  const targetSat = new Date(targetSun);
-  targetSat.setDate(targetSun.getDate() + 6);
+  const targetWed = getWednesdayOfWeek(targetSun);
+  const targetSat = getSaturdayOfWeek(targetSun);
 
   const startMonth = targetSun.toLocaleDateString('en-US', { month: 'short' });
   const startDay = String(targetSun.getDate()).padStart(2, '0');
@@ -58,17 +167,76 @@ function getWeekDateInfo(weekId) {
   const d = String(targetSun.getDate()).padStart(2, '0');
   const startDateStr = `${y}-${m}-${d}`;
 
+  const monthIndex = targetWed.getMonth();
+  const monthId = `${targetWed.getFullYear()}-${String(monthIndex + 1).padStart(2, '0')}`;
+  const monthLabel = targetWed.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
   return {
+    weekId,
     weekNum,
     year,
     startDate: startDateStr,
     dateRangeStr,
+    monthId,
+    monthLabel,
+    monthIndex,
     fullLabel: `Week ${weekNum} (${dateRangeStr})`
   };
 }
 
-if (typeof window !== 'undefined') window.getWeekDateInfo = getWeekDateInfo;
-if (typeof global !== 'undefined') global.getWeekDateInfo = getWeekDateInfo;
+/**
+ * Returns all weeks (typically 4 or 5) belonging to a specific month (where Wednesday lies in that month)
+ */
+function getWeeksForMonth(year, monthIndex) {
+  const weeks = [];
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstDay = new Date(year, monthIndex, 1);
+
+  // Find first Wednesday in this month
+  const firstWedDay = 1 + ((3 - firstDay.getDay() + 7) % 7);
+
+  let currentWedDay = firstWedDay;
+  let weekIndexInMonth = 1;
+
+  while (currentWedDay <= daysInMonth) {
+    const wed = new Date(year, monthIndex, currentWedDay);
+    const sun = new Date(wed);
+    sun.setDate(wed.getDate() - 3);
+
+    const weekId = getWeekIdentifier(wed);
+    const info = getWeekDateInfo(weekId);
+
+    weeks.push({
+      ...info,
+      weekIndexInMonth,
+      monthRelativeLabel: `Week ${weekIndexInMonth} (${info.dateRangeStr})`
+    });
+
+    currentWedDay += 7;
+    weekIndexInMonth += 1;
+  }
+
+  return weeks;
+}
+
+if (typeof window !== 'undefined') {
+  window.getSundayOfWeek = getSundayOfWeek;
+  window.getWednesdayOfWeek = getWednesdayOfWeek;
+  window.getSaturdayOfWeek = getSaturdayOfWeek;
+  window.getWeekMonthInfo = getWeekMonthInfo;
+  window.getWeekIdentifier = getWeekIdentifier;
+  window.getWeekDateInfo = getWeekDateInfo;
+  window.getWeeksForMonth = getWeeksForMonth;
+}
+if (typeof global !== 'undefined') {
+  global.getSundayOfWeek = getSundayOfWeek;
+  global.getWednesdayOfWeek = getWednesdayOfWeek;
+  global.getSaturdayOfWeek = getSaturdayOfWeek;
+  global.getWeekMonthInfo = getWeekMonthInfo;
+  global.getWeekIdentifier = getWeekIdentifier;
+  global.getWeekDateInfo = getWeekDateInfo;
+  global.getWeeksForMonth = getWeeksForMonth;
+}
 
 function createEmptyWeek(weekId, label, startDate, startingBalance = null) {
   const dateInfo = getWeekDateInfo(weekId);
@@ -92,7 +260,7 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = null) {
   } else if (weekId >= currentCalWeekId) {
     startVal = defaultCash;
   } else {
-    startVal = 0; // Past unrecorded weeks default to 0 0
+    startVal = 0; // Past unrecorded weeks default to 0
   }
 
   const foodBudget = Math.round(startVal * 0.24);
@@ -118,41 +286,46 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = null) {
   };
 }
 
-function getSampleState() {
-  const currentWeekId = getWeekIdentifier(new Date());
+/**
+ * Generates sample starter state dynamically for the current month and date
+ * Works seamlessly whether run in August 2026, September 2026, or any month in 2027+!
+ */
+function getSampleState(refDate = new Date()) {
+  const currentWeekId = getWeekIdentifier(refDate);
+  const currentWeekInfo = getWeekDateInfo(currentWeekId);
   let defaultCash = 7500;
   if (typeof window !== 'undefined' && window.CampusState && typeof window.CampusState.getDefaultStartingCash === 'function') {
     defaultCash = window.CampusState.getDefaultStartingCash();
   }
-  const initialWeek = createEmptyWeek(currentWeekId, 'Week 35 (Aug 23 – Aug 29)', '2026-08-23', defaultCash);
 
-  // Sunday Aug 23
+  // Get the 4 (or 5) weeks belonging to this month via Wednesday Rule
+  const monthWeeks = getWeeksForMonth(currentWeekInfo.year, currentWeekInfo.monthIndex);
+  const weeksState = {};
+
+  // Construct active week with realistic sample data
+  const initialWeek = createEmptyWeek(currentWeekId, currentWeekInfo.fullLabel, currentWeekInfo.startDate, defaultCash);
+
+  // Sample items for Sunday (Day 0)
   initialWeek.dailySpends[0] = {
     food: { items: [{ id: '101', name: 'Kurkure & Snacks', amount: 20, isBorrowed: false }, { id: '102', name: 'Cafeteria Lunch', amount: 160, isBorrowed: false }, { id: '103', name: 'Evening Chai', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '104', name: 'Laundry Detergent', amount: 150, isBorrowed: false }] }
   };
 
-  // Monday Aug 24
+  // Monday (Day 1)
   initialWeek.dailySpends[1] = {
     food: { items: [{ id: '201', name: 'Lunch Thali', amount: 180, isBorrowed: false }, { id: '202', name: 'Fruit Juice', amount: 60, isBorrowed: false }] },
     necessities: { items: [] }
   };
 
-  // Tuesday Aug 25
+  // Tuesday (Day 2)
   initialWeek.dailySpends[2] = {
     food: { items: [{ id: '301', name: 'Hostel Breakfast', amount: 80, isBorrowed: false }, { id: '302', name: 'Evening Tea', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '303', name: 'Pharmacy supplies', amount: 220, isBorrowed: false }] }
   };
 
-  // Wednesday Aug 26
+  // Wednesday (Day 3)
   initialWeek.dailySpends[3] = {
     food: { items: [{ id: '401', name: 'Kurkure & Biscuits', amount: 30, isBorrowed: false }, { id: '402', name: 'Canteen Coffee', amount: 40, isBorrowed: false }] },
-    necessities: { items: [] }
-  };
-
-  // Saturday Aug 29 (Today in IST)
-  initialWeek.dailySpends[6] = {
-    food: { items: [] },
     necessities: { items: [] }
   };
 
@@ -161,31 +334,43 @@ function getSampleState() {
     { id: 'surp-1', desc: 'Department Fest Registration & ID badge', amount: 300.00, day: 1, date: new Date().toISOString() }
   ];
 
-  // Sample To-Dos
+  weeksState[currentWeekId] = initialWeek;
+
+  // Populate other weeks in this month
+  monthWeeks.forEach(w => {
+    if (w.weekId === currentWeekId) return;
+    if (w.weekId < currentWeekId) {
+      // Past unrecorded week defaults to 0
+      weeksState[w.weekId] = createEmptyWeek(w.weekId, w.fullLabel, w.startDate, 0);
+    } else {
+      // Future week inherits default starting cash
+      weeksState[w.weekId] = createEmptyWeek(w.weekId, w.fullLabel, w.startDate, defaultCash);
+    }
+  });
+
+  // Sample To-Dos with today's dynamic date
+  const todayIso = new Date().toISOString().split('T')[0];
   const sampleTodos = [
-    { id: 'todo-1', text: 'Pay Mess dues before Friday', completed: false, date: '2026-08-29' },
-    { id: 'todo-2', text: 'Buy exam stationery & notebook', completed: true, date: '2026-08-29' },
-    { id: 'todo-3', text: 'Check campus library reserve copy for Physics', completed: false, date: '2026-08-29' }
+    { id: 'todo-1', text: 'Pay Mess dues before Friday', completed: false, date: todayIso },
+    { id: 'todo-2', text: 'Buy exam stationery & notebook', completed: true, date: todayIso },
+    { id: 'todo-3', text: 'Check campus library reserve copy for Physics', completed: false, date: todayIso }
   ];
 
-  // Past weeks (with no data recorded, all 0 0)
-  const pastWeek1 = createEmptyWeek('2026-W32', 'Week 32 (Aug 02 – Aug 08)', '2026-08-02', 0);
-  const pastWeek2 = createEmptyWeek('2026-W33', 'Week 33 (Aug 09 – Aug 15)', '2026-08-09', 0);
-  const pastWeek3 = createEmptyWeek('2026-W34', 'Week 34 (Aug 16 – Aug 22)', '2026-08-16', 0);
+  // Also include adjacent next week if needed
+  const nextSunday = new Date(currentWeekInfo.startDate + 'T00:00:00');
+  nextSunday.setDate(nextSunday.getDate() + 7);
+  const nextWeekId = getWeekIdentifier(nextSunday);
+  if (!weeksState[nextWeekId]) {
+    const nextInfo = getWeekDateInfo(nextWeekId);
+    weeksState[nextWeekId] = createEmptyWeek(nextWeekId, nextInfo.fullLabel, nextInfo.startDate, defaultCash);
+  }
 
-  // Upcoming week (Week 36) inherits defaultCash
-  const nextWeek = createEmptyWeek('2026-W36', 'Week 36 (Aug 30 – Sep 05)', '2026-08-30', defaultCash);
+  const allMonthWeekIds = monthWeeks.map(w => w.weekId);
 
   return {
-    version: 6,
+    version: 7,
     activeWeekId: currentWeekId,
-    weeks: {
-      [currentWeekId]: initialWeek,
-      '2026-W36': nextWeek,
-      '2026-W34': pastWeek3,
-      '2026-W33': pastWeek2,
-      '2026-W32': pastWeek1
-    },
+    weeks: weeksState,
     todos: sampleTodos,
     settings: {
       currency: '₹',
@@ -199,113 +384,231 @@ function getSampleState() {
     },
     monthlyArchives: [
       {
-        monthId: '2026-08',
-        monthLabel: 'August 2026',
-        weekIds: ['2026-W36', '2026-W35', '2026-W34', '2026-W33', '2026-W32']
+        monthId: currentWeekInfo.monthId,
+        monthLabel: currentWeekInfo.monthLabel,
+        weekIds: allMonthWeekIds
       }
     ]
   };
 }
 
-function getWeekIdentifier(d = new Date()) {
-  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const year = date.getFullYear();
-  const firstSun = new Date(year, 0, 1);
-  firstSun.setDate(1 - firstSun.getDay());
-  const diffDays = Math.floor((date.getTime() - firstSun.getTime()) / (24 * 60 * 60 * 1000));
-  const weekNum = Math.floor(diffDays / 7) + 1;
-  return `${year}-W${String(weekNum).padStart(2, '0')}`;
-}
-
 class StateManager {
   constructor() {
     this.listeners = [];
+    this.syncListeners = [];
     this.unlockedWeekIds = new Set();
-    this.state = this.loadState();
+    this.isLocallySaving = false;
+    this.isSyncing = false;
+    this.lastSyncTime = null;
+    this.syncError = null;
+    this.realtimeChannel = null;
+
+    // Start with baseline sample state in memory
+    this.state = getSampleState();
+    this.sanitizeLoadedState();
   }
 
-  loadState() {
+  /**
+   * Initializes Supabase connection, fetches live database state, and binds realtime listeners
+   */
+  async init() {
+    this.notifySyncStatus('connecting', 'Connecting to Supabase...');
+
     try {
-      const serialized = localStorage.getItem(STORAGE_KEY);
-      if (!serialized) {
-        const initial = getSampleState();
-        this.saveToStorage(initial);
-        return initial;
+      let client = (typeof window !== 'undefined' && window.CampusSupabase)
+        ? window.CampusSupabase.getClient()
+        : null;
+
+      if (!client && typeof window !== 'undefined' && window.CampusSupabase) {
+        client = await window.CampusSupabase.init();
       }
-      const parsed = JSON.parse(serialized);
-      const currentCalWeekId = getWeekIdentifier(new Date());
-      if (!parsed.weeks || !parsed.activeWeekId || !parsed.weeks[parsed.activeWeekId]) {
-        parsed.activeWeekId = currentCalWeekId;
-        if (!parsed.weeks[currentCalWeekId]) {
-          parsed.weeks[currentCalWeekId] = createEmptyWeek(currentCalWeekId);
+
+      if (!client) {
+        this.notifySyncStatus('unconfigured', 'Supabase unconfigured. Running in local memory mode.');
+        return;
+      }
+
+      // Read state directly from Supabase database
+      this.notifySyncStatus('syncing', 'Fetching state from Supabase...');
+      const { data, error } = await client
+        .from(DB_TABLE_NAME)
+        .select('*')
+        .eq('id', DB_ROW_ID)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Supabase state load error:', error);
+        this.syncError = error.message;
+        this.notifySyncStatus('error', `Supabase query error: ${error.message}`);
+      } else if (data && data.state && Object.keys(data.state).length > 0) {
+        // Successfully loaded from Supabase
+        this.state = data.state;
+        this.sanitizeLoadedState();
+        this.lastSyncTime = new Date(data.updated_at || Date.now());
+        this.syncError = null;
+        this.notifySyncStatus('synced', 'Synced with Supabase Cloud');
+        this.notifyListeners();
+      } else {
+        // Record does not exist in Supabase yet, insert our initial state
+        this.notifySyncStatus('syncing', 'Seeding initial state to Supabase...');
+        const { error: insertError } = await client
+          .from(DB_TABLE_NAME)
+          .upsert({
+            id: DB_ROW_ID,
+            state: this.state,
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Failed to seed initial state in Supabase:', insertError);
+          this.notifySyncStatus('error', insertError.message);
+        } else {
+          this.lastSyncTime = new Date();
+          this.syncError = null;
+          this.notifySyncStatus('synced', 'Initial state seeded to Supabase Cloud');
         }
       }
 
-      if (!parsed.settings) parsed.settings = {};
-      if (parsed.settings.defaultStartingCash === undefined) parsed.settings.defaultStartingCash = 7500;
-      if (!parsed.settings.currency) parsed.settings.currency = '₹';
-      if (!parsed.settings.unlockPasscode) parsed.settings.unlockPasscode = '1234';
-      if (!parsed.todos) parsed.todos = [];
+      // Setup Supabase Realtime Channel for live multi-device synchronization
+      this.setupRealtimeSubscription(client);
+    } catch (e) {
+      console.error('StateManager init exception:', e);
+      this.syncError = e.message;
+      this.notifySyncStatus('error', e.message || 'Initialization failed');
+    }
+  }
 
-      // If active week in storage was set to a future week (e.g. Week 36), reset active week to current calendar week (Week 35)
-      if (parsed.activeWeekId > currentCalWeekId) {
-        parsed.activeWeekId = currentCalWeekId;
+  /**
+   * Listens for PostgreSQL database changes from Supabase Realtime
+   */
+  setupRealtimeSubscription(client) {
+    if (!client || typeof client.channel !== 'function') return;
+
+    try {
+      if (this.realtimeChannel) {
+        client.removeChannel(this.realtimeChannel);
       }
 
-      // Merge sample historical weeks if missing
-      const sample = getSampleState();
-      Object.keys(sample.weeks).forEach(wId => {
-        if (!parsed.weeks[wId]) {
-          parsed.weeks[wId] = sample.weeks[wId];
-        }
-      });
+      this.realtimeChannel = client
+        .channel('campuscoin_state_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: DB_TABLE_NAME, filter: `id=eq.${DB_ROW_ID}` },
+          (payload) => {
+            if (this.isLocallySaving) return; // Skip echo of local saves
 
-      // Ensure all weeks have exact Sunday-to-Saturday date ranges in their labels and startDates
-      Object.keys(parsed.weeks).forEach(wId => {
-        const w = parsed.weeks[wId];
-        if (w) {
-          const info = getWeekDateInfo(wId);
-          w.label = info.fullLabel;
-          w.startDate = info.startDate;
-          // Current calendar week should not be finalized
-          if (wId === currentCalWeekId && w.finalized) {
-            w.finalized = false;
-          }
-          // Past unrecorded weeks with no user items should be 0 0
-          if (wId < currentCalWeekId) {
-            const hasUserItems = Object.values(w.dailySpends || {}).some(d => (d.food?.items?.length > 0) || (d.necessities?.items?.length > 0));
-            if (!hasUserItems && (w.startingBalance === 7500 || w.startingBalance === 8000)) {
-              w.startingBalance = 0;
-              w.allottedBudgets = { food: 0, necessities: 0 };
-              w.surprises = [];
+            if (payload && payload.new && payload.new.state) {
+              this.state = payload.new.state;
+              this.sanitizeLoadedState();
+              this.lastSyncTime = new Date(payload.new.updated_at || Date.now());
+              this.notifySyncStatus('synced', 'Updated in real-time from Supabase');
+              this.notifyListeners();
             }
           }
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn('Could not initialize Supabase realtime channel:', e);
+    }
+  }
+
+  /**
+   * Sanitizes and guarantees integrity of the loaded state
+   */
+  sanitizeLoadedState() {
+    const currentCalWeekId = getWeekIdentifier(new Date());
+
+    if (!this.state.weeks) this.state.weeks = {};
+    if (!this.state.activeWeekId || !this.state.weeks[this.state.activeWeekId]) {
+      this.state.activeWeekId = currentCalWeekId;
+    }
+
+    if (!this.state.weeks[this.state.activeWeekId]) {
+      this.state.weeks[this.state.activeWeekId] = createEmptyWeek(this.state.activeWeekId);
+    }
+
+    if (!this.state.settings) this.state.settings = {};
+    if (this.state.settings.defaultStartingCash === undefined) this.state.settings.defaultStartingCash = 7500;
+    if (!this.state.settings.currency) this.state.settings.currency = '₹';
+    if (!this.state.settings.unlockPasscode) this.state.settings.unlockPasscode = '1234';
+    if (!this.state.todos) this.state.todos = [];
+    if (!this.state.monthlyArchives) this.state.monthlyArchives = [];
+
+    // Ensure all weeks have exact Sunday-to-Saturday date ranges in their labels and startDates
+    Object.keys(this.state.weeks).forEach(wId => {
+      const w = this.state.weeks[wId];
+      if (w) {
+        const info = getWeekDateInfo(wId);
+        w.label = info.fullLabel;
+        w.startDate = info.startDate;
+        if (wId === currentCalWeekId && w.finalized) {
+          w.finalized = false;
         }
-      });
-
-      if (!parsed.settings) parsed.settings = {};
-      if (!parsed.settings.currency) parsed.settings.currency = '₹';
-      if (!parsed.settings.unlockPasscode) parsed.settings.unlockPasscode = '1234';
-      if (!parsed.todos) parsed.todos = [];
-
-      return parsed;
-    } catch (e) {
-      console.error('Error loading state:', e);
-      const fallback = getSampleState();
-      this.saveToStorage(fallback);
-      return fallback;
-    }
+      }
+    });
   }
 
-  saveToStorage(data) {
+  /**
+   * Saves state directly to Supabase PostgreSQL database
+   */
+  async saveToSupabase(data = this.state) {
+    this.isLocallySaving = true;
+    this.isSyncing = true;
+    this.notifySyncStatus('syncing', 'Saving changes to Supabase...');
+
+    // Synchronous optimistic notification for UI rendering
+    this.notifyListeners();
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      this.notifyListeners();
-    } catch (e) {
-      console.error('Error saving state:', e);
+      let client = null;
+      if (typeof window !== 'undefined' && window.CampusSupabase) {
+        client = window.CampusSupabase.getClient();
+      } else if (typeof global !== 'undefined' && global.CampusSupabase) {
+        client = global.CampusSupabase.getClient();
+      }
+
+      if (client) {
+        const { error } = await client
+          .from(DB_TABLE_NAME)
+          .upsert({
+            id: DB_ROW_ID,
+            state: data,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Supabase write error:', error);
+          this.syncError = error.message;
+          this.notifySyncStatus('error', `Save failed: ${error.message}`);
+        } else {
+          this.lastSyncTime = new Date();
+          this.syncError = null;
+          this.notifySyncStatus('synced', 'Saved to Supabase Cloud');
+        }
+      } else {
+        // Supabase client not connected yet
+        this.notifySyncStatus('unconfigured', 'Changes in memory (Supabase not connected)');
+      }
+    } catch (err) {
+      console.error('Supabase write exception:', err);
+      this.syncError = err.message;
+      this.notifySyncStatus('error', err.message || 'Save error');
+    } finally {
+      this.isSyncing = false;
+      setTimeout(() => {
+        this.isLocallySaving = false;
+      }, 300);
     }
   }
 
+  // Alias for backward compatibility
+  saveToStorage(data) {
+    return this.saveToSupabase(data);
+  }
+
+  /**
+   * Subscribe to state updates (UI re-renders)
+   */
   subscribe(listener) {
     this.listeners.push(listener);
     return () => {
@@ -316,6 +619,36 @@ class StateManager {
   notifyListeners() {
     this.listeners.forEach(fn => {
       try { fn(this.state); } catch (err) { console.error('Listener error:', err); }
+    });
+  }
+
+  /**
+   * Subscribe to Supabase Sync Status changes
+   */
+  onSyncStatusChange(listener) {
+    this.syncListeners.push(listener);
+    listener({
+      status: this.isSyncing ? 'syncing' : (this.syncError ? 'error' : 'synced'),
+      lastSync: this.lastSyncTime,
+      error: this.syncError
+    });
+    return () => {
+      this.syncListeners = this.syncListeners.filter(l => l !== listener);
+    };
+  }
+
+  notifySyncStatus(status, message = '') {
+    this.syncListeners.forEach(fn => {
+      try {
+        fn({
+          status,
+          message,
+          lastSync: this.lastSyncTime,
+          error: this.syncError
+        });
+      } catch (err) {
+        console.error('Sync listener error:', err);
+      }
     });
   }
 
@@ -331,25 +664,15 @@ class StateManager {
       this.state.weeks[weekId] = createEmptyWeek(weekId);
     }
     this.state.activeWeekId = weekId;
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   navigateWeek(offset) {
-    const parts = this.state.activeWeekId.split('-W');
-    const year = parseInt(parts[0], 10);
-    const weekNum = parseInt(parts[1], 10);
+    const info = getWeekDateInfo(this.state.activeWeekId);
+    const sunDate = new Date(info.startDate + 'T00:00:00');
+    sunDate.setDate(sunDate.getDate() + offset * 7);
 
-    let newWeekNum = weekNum + offset;
-    let newYear = year;
-    if (newWeekNum < 1) {
-      newYear -= 1;
-      newWeekNum = 52;
-    } else if (newWeekNum > 52) {
-      newYear += 1;
-      newWeekNum = 1;
-    }
-
-    const newWeekId = `${newYear}-W${String(newWeekNum).padStart(2, '0')}`;
+    const newWeekId = getWeekIdentifier(sunDate);
     this.setActiveWeek(newWeekId);
     return newWeekId;
   }
@@ -374,7 +697,7 @@ class StateManager {
     const week = this.getActiveWeek();
     if (!week.allottedBudgets) week.allottedBudgets = {};
     week.allottedBudgets[category] = parseFloat(amount) || 0;
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   borrowFunds(fromCategory, toCategory, amount) {
@@ -388,14 +711,14 @@ class StateManager {
     week.allottedBudgets[fromCategory] = Math.max(0, fromCurrent - amt);
     week.allottedBudgets[toCategory] = toCurrent + amt;
 
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   toggleColumnCollapse(category) {
     const week = this.getActiveWeek();
     if (!week.collapsedColumns) week.collapsedColumns = {};
     week.collapsedColumns[category] = !week.collapsedColumns[category];
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   addItemToCell(dayIndex, category, name, amount, isBorrowed = false) {
@@ -419,7 +742,7 @@ class StateManager {
     };
 
     cellObj.items.push(item);
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
     return item;
   }
 
@@ -429,7 +752,7 @@ class StateManager {
     const cellObj = week.dailySpends[dayIndex][category];
     if (Array.isArray(cellObj.items)) {
       cellObj.items = cellObj.items.filter(it => it.id !== itemId);
-      this.saveToStorage(this.state);
+      this.saveToSupabase(this.state);
     }
   }
 
@@ -452,7 +775,7 @@ class StateManager {
       week.allottedBudgets.necessities = Math.max(0, parseFloat((currentNec - surpAmount).toFixed(2)));
     }
 
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
     return surpriseItem;
   }
 
@@ -466,7 +789,7 @@ class StateManager {
       week.allottedBudgets.necessities = parseFloat((currentNec + refundedAmt).toFixed(2));
     }
     week.surprises = week.surprises.filter(s => s.id !== surpriseId);
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   addTodo(text) {
@@ -478,7 +801,7 @@ class StateManager {
       date: new Date().toISOString().split('T')[0]
     };
     this.state.todos.unshift(newTodo);
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
     return newTodo;
   }
 
@@ -487,21 +810,21 @@ class StateManager {
     const item = this.state.todos.find(t => t.id === id);
     if (item) {
       item.completed = !item.completed;
-      this.saveToStorage(this.state);
+      this.saveToSupabase(this.state);
     }
   }
 
   deleteTodo(id) {
     if (!this.state.todos) return;
     this.state.todos = this.state.todos.filter(t => t.id !== id);
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   resetCurrentWeek() {
     const currentId = this.state.activeWeekId;
     const currentBal = this.getActiveWeek().startingBalance || 7500;
     this.state.weeks[currentId] = createEmptyWeek(currentId, null, null, currentBal);
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   archiveActiveWeek() {
@@ -509,16 +832,15 @@ class StateManager {
     week.finalized = true;
     week.finalizedAt = new Date().toISOString();
 
-    const monthKey = week.startDate ? week.startDate.substring(0, 7) : new Date().toISOString().substring(0, 7);
+    const info = getWeekDateInfo(week.id);
+    const monthKey = info.monthId;
     if (!this.state.monthlyArchives) this.state.monthlyArchives = [];
     
     let monthEntry = this.state.monthlyArchives.find(m => m.monthId === monthKey);
     if (!monthEntry) {
-      const monthDate = new Date();
-      const monthLabel = monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
       monthEntry = {
         monthId: monthKey,
-        monthLabel: monthLabel,
+        monthLabel: info.monthLabel,
         weekIds: []
       };
       this.state.monthlyArchives.push(monthEntry);
@@ -528,7 +850,7 @@ class StateManager {
       monthEntry.weekIds.push(week.id);
     }
 
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   exportBackupJSON() {
@@ -542,18 +864,19 @@ class StateManager {
         throw new Error('Invalid backup file: missing weeks structure');
       }
       this.state = parsed;
-      this.saveToStorage(this.state);
-      return { success: true, message: 'Backup successfully restored!' };
+      this.sanitizeLoadedState();
+      this.saveToSupabase(this.state);
+      return { success: true, message: 'Backup successfully restored to Supabase Cloud!' };
     } catch (err) {
       return { success: false, message: err.message };
     }
   }
 
-  clearAllData() {
-    localStorage.removeItem(STORAGE_KEY);
+  async clearAllData() {
+    const currentWeekId = getWeekIdentifier(new Date());
     const cleanState = {
-      version: 6,
-      activeWeekId: getWeekIdentifier(new Date()),
+      version: 7,
+      activeWeekId: currentWeekId,
       weeks: {},
       todos: [],
       settings: {
@@ -567,13 +890,27 @@ class StateManager {
     };
     cleanState.weeks[cleanState.activeWeekId] = createEmptyWeek(cleanState.activeWeekId);
     this.state = cleanState;
-    this.saveToStorage(this.state);
+
+    // Delete or reset row in Supabase database
+    try {
+      const client = (typeof window !== 'undefined' && window.CampusSupabase)
+        ? window.CampusSupabase.getClient()
+        : null;
+      if (client) {
+        await client.from(DB_TABLE_NAME).delete().eq('id', DB_ROW_ID);
+      }
+    } catch (e) {
+      console.warn('Supabase delete error during clearAllData:', e);
+    }
+
+    this.saveToSupabase(this.state);
   }
 
   loadSampleStarterData() {
     const sample = getSampleState();
     this.state = sample;
-    this.saveToStorage(this.state);
+    this.sanitizeLoadedState();
+    this.saveToSupabase(this.state);
   }
 
   getDefaultStartingCash() {
@@ -605,7 +942,7 @@ class StateManager {
       });
     }
 
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   getSettings() {
@@ -614,7 +951,7 @@ class StateManager {
 
   updateSettings(newSettings) {
     this.state.settings = { ...this.state.settings, ...newSettings };
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 
   getCurrency() {
@@ -657,8 +994,19 @@ class StateManager {
   setUnlockPasscode(newCode) {
     if (!this.state.settings) this.state.settings = {};
     this.state.settings.unlockPasscode = (newCode || '1234').trim();
-    this.saveToStorage(this.state);
+    this.saveToSupabase(this.state);
   }
 }
 
-window.CampusState = new StateManager();
+// Instantiate singleton StateManager
+const stateInstance = new StateManager();
+
+if (typeof window !== 'undefined') {
+  window.CampusState = stateInstance;
+}
+if (typeof global !== 'undefined') {
+  global.CampusState = stateInstance;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = stateInstance;
+}

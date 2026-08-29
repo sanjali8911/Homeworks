@@ -1,0 +1,20 @@
+{
+  "name": "campuscoin",
+  "version": "1.0.0",
+  "description": "> A modern, responsive, cyber-dark personal finance single-page web application designed specifically for college students to track weekly expenses, manage allotted category budgets, track surprise anomalies, and aggregate spending into a monthly macro-summary.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node test/test_logic.js",
+    "dev": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4"
+  }
+}

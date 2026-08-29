@@ -8,14 +8,14 @@ const CampusCharts = {
   budgetVsActualChart: null,
   monthlyCategoryChart: null,
 
-  updateCharts(week, state) {
+  updateCharts(week, state, targetMonthId = 'current') {
     if (!window.Chart) return;
     if (!week) week = CampusState.getActiveWeek();
     if (!state) state = CampusState.state;
 
     this.renderDailySpendingChart(week);
     this.renderBudgetVsActualChart(week);
-    this.renderMonthlyCategoryChart(state);
+    this.renderMonthlyCategoryChart(state, targetMonthId);
 
     if (this.dailyChart) this.dailyChart.resize();
     if (this.budgetVsActualChart) this.budgetVsActualChart.resize();
@@ -166,11 +166,11 @@ const CampusCharts = {
   /**
    * Monthly Category Distribution Donut Chart
    */
-  renderMonthlyCategoryChart(state) {
+  renderMonthlyCategoryChart(state, targetMonthId = 'current') {
     const canvas = document.getElementById('monthly-category-chart');
     if (!canvas) return;
 
-    const summary = CampusCalculator.getMonthlySummary(state, 'current');
+    const summary = CampusCalculator.getMonthlySummary(state, targetMonthId);
     const catTotals = summary.categoryTotals;
     const labels = CATEGORIES.map(c => c.name);
     const data = CATEGORIES.map(c => catTotals[c.id] || 0);
