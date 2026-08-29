@@ -1641,6 +1641,69 @@ function setupSettingsActions() {
     });
   }
 
+  // Supabase Custom Credentials Form
+  const toggleConfigBtn = document.getElementById('btn-toggle-supabase-config');
+  const configForm = document.getElementById('supabase-config-form');
+  const inputUrl = document.getElementById('input-supabase-url');
+  const inputKey = document.getElementById('input-supabase-key');
+  const saveCredsBtn = document.getElementById('btn-save-supabase-creds');
+  const resetCredsBtn = document.getElementById('btn-reset-supabase-creds');
+
+  if (toggleConfigBtn && configForm) {
+    toggleConfigBtn.addEventListener('click', () => {
+      configForm.classList.toggle('hidden');
+      if (!configForm.classList.contains('hidden') && window.CampusSupabase) {
+        const creds = window.CampusSupabase.getCredentials();
+        if (inputUrl) inputUrl.value = creds.url || '';
+        if (inputKey) inputKey.value = creds.anonKey || '';
+      }
+    });
+  }
+
+  if (saveCredsBtn && window.CampusSupabase) {
+    saveCredsBtn.addEventListener('click', async () => {
+      const url = (inputUrl ? inputUrl.value : '').trim();
+      const key = (inputKey ? inputKey.value : '').trim();
+
+      if (!url || !key) {
+        CampusNotifications.showToast('Please enter both Supabase Project URL and API Key', 'error');
+        return;
+      }
+
+      saveCredsBtn.disabled = true;
+      saveCredsBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Connecting...';
+      if (window.lucide) lucide.createIcons();
+
+      await window.CampusSupabase.setCredentials(url, key, true);
+      const res = await window.CampusSupabase.testConnection();
+
+      saveCredsBtn.disabled = false;
+      saveCredsBtn.innerHTML = '<i data-lucide="save"></i> Save & Reconnect';
+      if (window.lucide) lucide.createIcons();
+
+      if (res.success) {
+        CampusNotifications.showToast('Credentials saved! Connected to Supabase.', 'success');
+        CampusNotifications.playChime('success');
+        if (CampusState.init) CampusState.init();
+      } else {
+        CampusNotifications.showToast(`Connection failed: ${res.message}`, 'error');
+      }
+    });
+  }
+
+  if (resetCredsBtn && window.CampusSupabase) {
+    resetCredsBtn.addEventListener('click', async () => {
+      localStorage.removeItem('campuscoin_supabase_url');
+      localStorage.removeItem('campuscoin_supabase_key');
+      await window.CampusSupabase.init();
+      const creds = window.CampusSupabase.getCredentials();
+      if (inputUrl) inputUrl.value = creds.url || '';
+      if (inputKey) inputKey.value = creds.anonKey || '';
+      CampusNotifications.showToast('Reset to default project credentials', 'success');
+      if (CampusState.init) CampusState.init();
+    });
+  }
+
   const exportBackupBtn = document.getElementById('export-backup-btn');
   if (exportBackupBtn) {
     exportBackupBtn.addEventListener('click', () => {

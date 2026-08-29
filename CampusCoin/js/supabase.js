@@ -69,18 +69,32 @@
 
   /**
    * Asynchronously load environment variables from multiple possible sources:
-   * 1. window / global variables
-   * 2. process.env (Node / SSR / Bundlers)
-   * 3. .env.local file fetch (Static web servers)
-   * 4. .env file fetch
+   * 1. localStorage overrides (user custom settings in UI)
+   * 2. window.CAMPUS_CONFIG / window.ENV / window.NEXT_PUBLIC_*
+   * 3. process.env (Node / SSR / Bundlers)
+   * 4. .env.local file fetch or fs read
+   * 5. Built-in default credentials fallback
    */
   async function loadCredentials() {
     let url = '';
     let key = '';
 
-    // 1. Check window/global variables
-    if (typeof window !== 'undefined') {
-      if (window.NEXT_PUBLIC_SUPABASE_URL && window.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    // 1. Check localStorage override first (if user explicitly configured them in Settings)
+    if (typeof localStorage !== 'undefined') {
+      const storedUrl = localStorage.getItem('campuscoin_supabase_url');
+      const storedKey = localStorage.getItem('campuscoin_supabase_key');
+      if (storedUrl && storedKey) {
+        url = storedUrl;
+        key = storedKey;
+      }
+    }
+
+    // 2. Check window / config variables (from js/config.js or injected scripts)
+    if ((!url || !key) && typeof window !== 'undefined') {
+      if (window.CAMPUS_CONFIG && window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_URL && window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        url = window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_URL;
+        key = window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      } else if (window.NEXT_PUBLIC_SUPABASE_URL && window.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         url = window.NEXT_PUBLIC_SUPABASE_URL;
         key = window.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       } else if (window.ENV) {
@@ -89,7 +103,7 @@
       }
     }
 
-    // 2. Check process.env (Node.js or test runners)
+    // 3. Check process.env (Node.js or test runners)
     if ((!url || !key) && typeof process !== 'undefined' && process.env) {
       if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -100,7 +114,7 @@
       }
     }
 
-    // 3. In Node.js, attempt to read .env.local from disk directly if not in process.env
+    // 4. In Node.js, attempt to read .env.local from disk directly if not in process.env
     if ((!url || !key) && typeof require !== 'undefined' && typeof process !== 'undefined' && !process.browser) {
       try {
         const fs = require('fs');
@@ -119,8 +133,8 @@
       }
     }
 
-    // 4. In Browser, attempt to fetch .env.local from server root
-    if ((!url || !key) && typeof fetch === 'function' && typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+    // 5. In Browser, attempt to fetch .env.local from server root
+    if ((!url || !key) && typeof fetch === 'function' && typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
       const tryFetchEnv = async (file) => {
         try {
           const res = await fetch(file, { cache: 'no-store' });
@@ -147,14 +161,10 @@
       }
     }
 
-    // 5. Check localStorage override if user entered them via UI settings
-    if ((!url || !key) && typeof localStorage !== 'undefined') {
-      const storedUrl = localStorage.getItem('campuscoin_supabase_url');
-      const storedKey = localStorage.getItem('campuscoin_supabase_key');
-      if (storedUrl && storedKey) {
-        url = storedUrl;
-        key = storedKey;
-      }
+    // 6. Final fallback project defaults
+    if (!url || !key) {
+      url = 'https://fanrgjutotrgejbpxzxp.supabase.co';
+      key = 'sb_publishable_B8FTQUZYWuNLcChsTenYmw_6fTkZFx-';
     }
 
     credentials = { url: (url || '').trim(), anonKey: (key || '').trim() };

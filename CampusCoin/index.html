@@ -1007,7 +1007,7 @@
             <span>Supabase Cloud Database</span>
           </h4>
           <p class="settings-block-desc">
-            Directly connected to your Supabase PostgreSQL database using <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> from <code>.env.local</code>.
+            Directly connected to your Supabase PostgreSQL cloud database for live real-time sync across devices.
           </p>
           <div class="supabase-status-box" id="supabase-modal-status-box">
             <div class="supabase-status-line">
@@ -1019,6 +1019,28 @@
               <button type="button" id="btn-test-supabase" class="btn-subtle btn-sm">
                 <i data-lucide="refresh-cw"></i> Test Connection
               </button>
+              <button type="button" id="btn-toggle-supabase-config" class="btn-subtle btn-sm">
+                <i data-lucide="settings"></i> Configure Credentials
+              </button>
+            </div>
+
+            <div id="supabase-config-form" class="supabase-config-form hidden" style="margin-top: 0.85rem; border-top: 1px solid var(--border-subtle); padding-top: 0.85rem;">
+              <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label for="input-supabase-url" style="font-size: 0.8rem; font-weight: 600;">Supabase Project URL</label>
+                <input type="text" id="input-supabase-url" class="form-input" placeholder="https://your-project.supabase.co" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label for="input-supabase-key" style="font-size: 0.8rem; font-weight: 600;">Supabase Anon / Public API Key</label>
+                <input type="password" id="input-supabase-key" class="form-input" placeholder="sb_publishable_... or your anon key" />
+              </div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" id="btn-save-supabase-creds" class="btn-primary-pill btn-sm">
+                  <i data-lucide="save"></i> Save & Reconnect
+                </button>
+                <button type="button" id="btn-reset-supabase-creds" class="btn-subtle btn-sm">
+                  Reset Defaults
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1231,6 +1253,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/state.js"></script>
   <script src="js/calculator.js"></script>
