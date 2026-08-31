@@ -2523,6 +2523,144 @@ input[type=number] {
   gap: 0.75rem;
 }
 
+/* Category Allotment Split Settings */
+.allotment-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.allotment-visual-bar {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: var(--bg-subtle);
+}
+
+.visual-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 0.4rem;
+}
+
+.fill-food {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.fill-nec {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.input-pct-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-pct-wrapper .form-input {
+  padding-right: 1.8rem;
+}
+
+.pct-suffix {
+  position: absolute;
+  right: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.slider-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  background: var(--bg-subtle);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-light);
+}
+
+.slider-labels-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+}
+
+.split-status-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.split-status-badge.badge-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.split-range-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--google-blue);
+}
+
+.preset-splits-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.preset-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.preset-split-chip {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-split-chip:hover {
+  background: var(--bg-subtle);
+  border-color: var(--google-blue);
+  color: var(--google-blue);
+}
+
+.preset-split-chip.active {
+  background: var(--google-blue-subtle);
+  border-color: var(--google-blue);
+  color: var(--google-blue);
+}
+
 /* Dropdown */
 .dropdown-wrapper {
   position: relative;

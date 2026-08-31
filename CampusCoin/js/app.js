@@ -147,7 +147,47 @@ function renderAll() {
     updateExportDropdown();
   }
 
+  // 8. Dynamic Budget Percentage Labels
+  renderDynamicBudgetLabels();
+
   if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Dynamic Budget Percentage Labels (Syncs everywhere Food % and Necessities % are displayed)
+ */
+function renderDynamicBudgetLabels() {
+  const pcts = (typeof CampusState !== 'undefined' && typeof CampusState.getBudgetPercentages === 'function')
+    ? CampusState.getBudgetPercentages()
+    : { food: 24, necessities: 76 };
+
+  // Table column headers
+  const foodPctLabel = document.getElementById('food-pct-label');
+  if (foodPctLabel) foodPctLabel.textContent = `(${pcts.food}%)`;
+
+  const necPctLabel = document.getElementById('nec-pct-label');
+  if (necPctLabel) necPctLabel.textContent = `(${pcts.necessities}%)`;
+
+  // Planner card subhead
+  const subheadFood = document.getElementById('subhead-food-pct');
+  if (subheadFood) subheadFood.textContent = `${pcts.food}%`;
+
+  const subheadNec = document.getElementById('subhead-nec-pct');
+  if (subheadNec) subheadNec.textContent = `${pcts.necessities}%`;
+
+  // Cell modal category options
+  const optCellFood = document.getElementById('opt-cell-food');
+  if (optCellFood) optCellFood.textContent = `🍛 Food (${pcts.food}% target)`;
+
+  const optCellNec = document.getElementById('opt-cell-nec');
+  if (optCellNec) optCellNec.textContent = `🧼 Necessities (${pcts.necessities}% target)`;
+
+  // Quick add modal category options
+  const optQuickFood = document.getElementById('opt-quick-food');
+  if (optQuickFood) optQuickFood.textContent = `🍛 Food (${pcts.food}% target)`;
+
+  const optQuickNec = document.getElementById('opt-quick-nec');
+  if (optQuickNec) optQuickNec.textContent = `🧼 Necessities (${pcts.necessities}% target)`;
 }
 
 /**
@@ -2011,6 +2051,120 @@ function setupSettingsActions() {
       if (inputKey) inputKey.value = creds.anonKey || '';
       CampusNotifications.showToast('Reset to default project credentials', 'success');
       if (CampusState.init) CampusState.init();
+    });
+  }
+
+  // Category Allotment Split Settings
+  const foodPctInput = document.getElementById('setting-food-pct');
+  const necPctInput = document.getElementById('setting-nec-pct');
+  const splitSlider = document.getElementById('allotment-split-slider');
+  const visualFood = document.getElementById('visual-bar-food');
+  const visualNec = document.getElementById('visual-bar-nec');
+  const visualLabelFood = document.getElementById('visual-label-food');
+  const visualLabelNec = document.getElementById('visual-label-nec');
+  const sliderFoodVal = document.getElementById('slider-food-val');
+  const sliderNecVal = document.getElementById('slider-nec-val');
+  const sumBadge = document.getElementById('split-sum-badge');
+  const saveSplitBtn = document.getElementById('btn-save-allotment-split');
+  const reapplyCheckbox = document.getElementById('reapply-split-to-active-week');
+  const presetButtons = document.querySelectorAll('.preset-split-chip');
+
+  const updateSplitUI = (foodVal, necVal, fromSource = '') => {
+    foodVal = Math.max(0, Math.min(100, Math.round(foodVal)));
+    necVal = Math.max(0, Math.min(100, Math.round(necVal)));
+    const sum = foodVal + necVal;
+
+    if (foodPctInput && fromSource !== 'foodInput') foodPctInput.value = foodVal;
+    if (necPctInput && fromSource !== 'necInput') necPctInput.value = necVal;
+    if (splitSlider && fromSource !== 'slider') splitSlider.value = foodVal;
+
+    if (visualFood) {
+      visualFood.style.width = `${foodVal}%`;
+      visualFood.style.display = foodVal > 0 ? 'flex' : 'none';
+    }
+    if (visualNec) {
+      visualNec.style.width = `${necVal}%`;
+      visualNec.style.display = necVal > 0 ? 'flex' : 'none';
+    }
+
+    if (visualLabelFood) visualLabelFood.textContent = foodVal >= 12 ? `🍛 Food ${foodVal}%` : `${foodVal}%`;
+    if (visualLabelNec) visualLabelNec.textContent = necVal >= 12 ? `🧼 Necessities ${necVal}%` : `${necVal}%`;
+
+    if (sliderFoodVal) sliderFoodVal.textContent = `${foodVal}%`;
+    if (sliderNecVal) sliderNecVal.textContent = `${necVal}%`;
+
+    if (sumBadge) {
+      if (sum === 100) {
+        sumBadge.textContent = 'Total: 100% (Balanced)';
+        sumBadge.className = 'split-status-badge';
+      } else {
+        sumBadge.textContent = `Total: ${sum}% (Must equal 100%)`;
+        sumBadge.className = 'split-status-badge badge-error';
+      }
+    }
+
+    presetButtons.forEach(btn => {
+      const bFood = parseInt(btn.getAttribute('data-food'), 10);
+      const bNec = parseInt(btn.getAttribute('data-nec'), 10);
+      if (bFood === foodVal && bNec === necVal) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  };
+
+  // Initialize UI from current state
+  const currentPcts = CampusState.getBudgetPercentages();
+  updateSplitUI(currentPcts.food, currentPcts.necessities);
+
+  if (foodPctInput) {
+    foodPctInput.addEventListener('input', () => {
+      const f = parseFloat(foodPctInput.value) || 0;
+      const n = Math.max(0, 100 - f);
+      updateSplitUI(f, n, 'foodInput');
+    });
+  }
+
+  if (necPctInput) {
+    necPctInput.addEventListener('input', () => {
+      const n = parseFloat(necPctInput.value) || 0;
+      const f = Math.max(0, 100 - n);
+      updateSplitUI(f, n, 'necInput');
+    });
+  }
+
+  if (splitSlider) {
+    splitSlider.addEventListener('input', () => {
+      const f = parseInt(splitSlider.value, 10);
+      const n = 100 - f;
+      updateSplitUI(f, n, 'slider');
+    });
+  }
+
+  presetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = parseInt(btn.getAttribute('data-food'), 10);
+      const n = parseInt(btn.getAttribute('data-nec'), 10);
+      updateSplitUI(f, n);
+    });
+  });
+
+  if (saveSplitBtn) {
+    saveSplitBtn.addEventListener('click', () => {
+      const foodVal = Math.round(parseFloat(foodPctInput ? foodPctInput.value : 24) || 0);
+      const necVal = Math.round(parseFloat(necPctInput ? necPctInput.value : 76) || 0);
+
+      if (foodVal + necVal !== 100) {
+        CampusNotifications.showToast('Food + Necessities percentages must sum to exactly 100%!', 'warning');
+        return;
+      }
+
+      const applyToActive = reapplyCheckbox ? reapplyCheckbox.checked : true;
+      CampusState.setBudgetPercentages(foodVal, necVal, applyToActive);
+      CampusNotifications.showToast(`Category split updated: ${foodVal}% Food / ${necVal}% Necessities!`, 'success');
+      CampusNotifications.playChime('success');
+      renderAll();
     });
   }
 

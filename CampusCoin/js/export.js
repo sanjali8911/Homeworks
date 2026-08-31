@@ -189,12 +189,16 @@ const CampusExport = {
         doc.setFontSize(9);
         doc.setTextColor(30, 41, 59);
 
+        const pcts = (typeof CampusState !== 'undefined' && typeof CampusState.getBudgetPercentages === 'function')
+          ? CampusState.getBudgetPercentages()
+          : { food: 24, necessities: 76 };
+
         doc.setFillColor(241, 245, 249);
         doc.rect(15, startY, 180, 7, 'F');
         doc.setFont('helvetica', 'bold');
         doc.text('Day', 20, startY + 5);
-        doc.text('Food (24%)', 65, startY + 5);
-        doc.text('Necessities (76%)', 115, startY + 5);
+        doc.text(`Food (${pcts.food}%)`, 65, startY + 5);
+        doc.text(`Necessities (${pcts.necessities}%)`, 115, startY + 5);
         doc.text('Daily Total', 165, startY + 5);
 
         doc.setFont('helvetica', 'normal');

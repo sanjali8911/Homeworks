@@ -263,7 +263,14 @@ function createEmptyWeek(weekId, label, startDate, startingBalance = null) {
     startVal = 0; // Past unrecorded weeks default to 0
   }
 
-  const foodBudget = Math.round(startVal * 0.24);
+  let budgetPcts = { food: 24, necessities: 76 };
+  if (typeof window !== 'undefined' && window.CampusState && typeof window.CampusState.getBudgetPercentages === 'function') {
+    budgetPcts = window.CampusState.getBudgetPercentages();
+  } else if (typeof global !== 'undefined' && global.CampusState && typeof global.CampusState.getBudgetPercentages === 'function') {
+    budgetPcts = global.CampusState.getBudgetPercentages();
+  }
+  const foodPct = (budgetPcts.food !== undefined ? budgetPcts.food : 24) / 100;
+  const foodBudget = Math.round(startVal * foodPct);
   const necessitiesBudget = Math.max(0, startVal - foodBudget);
 
   const allottedBudgets = {
@@ -537,6 +544,17 @@ class StateManager {
     if (this.state.settings.defaultStartingCash === undefined) this.state.settings.defaultStartingCash = 7500;
     if (!this.state.settings.currency) this.state.settings.currency = '₹';
     if (!this.state.settings.unlockPasscode) this.state.settings.unlockPasscode = '1234';
+    if (!this.state.settings.budgetPercentages) {
+      this.state.settings.budgetPercentages = { food: 24, necessities: 76 };
+    }
+    const p = this.state.settings.budgetPercentages;
+    const food = (p.food !== undefined) ? Math.max(0, Math.min(100, parseFloat(p.food) || 0)) : 24;
+    const nec = (p.necessities !== undefined) ? Math.max(0, Math.min(100, parseFloat(p.necessities) || 0)) : (100 - food);
+    const foodCat = CATEGORIES.find(c => c.id === 'food');
+    if (foodCat) foodCat.defaultPct = food / 100;
+    const necCat = CATEGORIES.find(c => c.id === 'necessities');
+    if (necCat) necCat.defaultPct = nec / 100;
+
     if (!this.state.todos) this.state.todos = [];
     if (!this.state.incomeSources) {
       this.state.incomeSources = [
@@ -693,7 +711,8 @@ class StateManager {
     const val = Math.max(0, parseFloat(amount) || 0);
     week.startingBalance = val;
 
-    const foodBudget = Math.round(val * 0.24);
+    const pcts = this.getBudgetPercentages();
+    const foodBudget = Math.round(val * (pcts.food / 100));
     const necessitiesBudget = Math.max(0, val - foodBudget);
 
     if (!week.allottedBudgets) week.allottedBudgets = {};
@@ -1034,6 +1053,7 @@ class StateManager {
 
     if (applyToComingWeeks) {
       const currentCalWeekId = getWeekIdentifier(new Date());
+      const pcts = this.getBudgetPercentages();
       Object.keys(this.state.weeks).forEach(wId => {
         if (wId >= currentCalWeekId) {
           const w = this.state.weeks[wId];
@@ -1042,7 +1062,7 @@ class StateManager {
             if (!hasUserSpends || wId === this.state.activeWeekId) {
               w.startingBalance = val;
               if (!w.allottedBudgets) w.allottedBudgets = {};
-              w.allottedBudgets.food = Math.round(val * 0.24);
+              w.allottedBudgets.food = Math.round(val * (pcts.food / 100));
               w.allottedBudgets.necessities = Math.max(0, val - w.allottedBudgets.food);
             }
           }
@@ -1051,6 +1071,51 @@ class StateManager {
     }
 
     this.saveToSupabase(this.state);
+  }
+
+  getBudgetPercentages() {
+    if (this.state && this.state.settings && this.state.settings.budgetPercentages) {
+      const p = this.state.settings.budgetPercentages;
+      const food = (p.food !== undefined) ? Math.max(0, Math.min(100, parseFloat(p.food) || 0)) : 24;
+      const nec = (p.necessities !== undefined) ? Math.max(0, Math.min(100, parseFloat(p.necessities) || 0)) : (100 - food);
+      return { food, necessities: nec };
+    }
+    return { food: 24, necessities: 76 };
+  }
+
+  setBudgetPercentages(foodPct, necessitiesPct, applyToWeeks = true) {
+    let food = Math.max(0, Math.min(100, Math.round(parseFloat(foodPct) || 0)));
+    let nec = Math.max(0, Math.min(100, Math.round(parseFloat(necessitiesPct) || 0)));
+    if (food + nec !== 100) {
+      nec = 100 - food;
+    }
+
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.budgetPercentages = { food, necessities: nec };
+
+    // Update CATEGORIES defaultPct in-memory
+    const foodCat = CATEGORIES.find(c => c.id === 'food');
+    if (foodCat) foodCat.defaultPct = food / 100;
+    const necCat = CATEGORIES.find(c => c.id === 'necessities');
+    if (necCat) necCat.defaultPct = nec / 100;
+
+    if (applyToWeeks) {
+      const currentCalWeekId = getWeekIdentifier(new Date());
+      Object.keys(this.state.weeks).forEach(wId => {
+        const w = this.state.weeks[wId];
+        if (w && !w.finalized && (wId >= currentCalWeekId || wId === this.state.activeWeekId)) {
+          const startingVal = parseFloat(w.startingBalance) || 0;
+          const foodVal = Math.round(startingVal * (food / 100));
+          const necVal = Math.max(0, startingVal - foodVal);
+          if (!w.allottedBudgets) w.allottedBudgets = {};
+          w.allottedBudgets.food = foodVal;
+          w.allottedBudgets.necessities = necVal;
+        }
+      });
+    }
+
+    this.saveToSupabase(this.state);
+    this.notifyListeners();
   }
 
   getSettings() {

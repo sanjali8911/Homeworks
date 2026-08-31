@@ -196,7 +196,7 @@
           <div class="planner-card-header">
             <div>
               <h2 class="card-headline">Weekly Expense Planner</h2>
-              <p class="card-subhead">Zero-sum balance. 24% auto-allotted to Food, 76% to Necessities. Live allowance
+              <p class="card-subhead" id="planner-card-subhead">Zero-sum balance. <span id="subhead-food-pct">24%</span> auto-allotted to Food, <span id="subhead-nec-pct">76%</span> to Necessities. Live allowance
                 tracking.</p>
             </div>
           </div>
@@ -237,10 +237,10 @@
                 <tr>
                   <th class="col-day sticky-header-col">Day / Category</th>
                   <th class="col-cat cat-food" id="th-cat-food">
-                    <div class="th-cat"><span>🍛</span> Food <small class="pct-sub">(24%)</small></div>
+                    <div class="th-cat"><span>🍛</span> Food <small class="pct-sub" id="food-pct-label">(24%)</small></div>
                   </th>
                   <th class="col-cat cat-necessities" id="th-cat-necessities">
-                    <div class="th-cat"><span>🧼</span> Necessities <small class="pct-sub">(76%)</small></div>
+                    <div class="th-cat"><span>🧼</span> Necessities <small class="pct-sub" id="nec-pct-label">(76%)</small></div>
                   </th>
                   <th class="col-total">
                     <div class="th-cat"><span>⚡</span> Daily Total</div>
@@ -784,8 +784,8 @@
           <div class="form-group flex-1">
             <label for="cell-modal-cat-select">Category</label>
             <select id="cell-modal-cat-select" class="form-select" required>
-              <option value="food">🍛 Food (24% target)</option>
-              <option value="necessities">🧼 Necessities (76% target)</option>
+              <option value="food" id="opt-cell-food">🍛 Food (24% target)</option>
+              <option value="necessities" id="opt-cell-nec">🧼 Necessities (76% target)</option>
             </select>
           </div>
         </div>
@@ -929,8 +929,8 @@
           <div class="form-group flex-1">
             <label for="quick-cat-select">Category</label>
             <select id="quick-cat-select" class="form-select" required>
-              <option value="food">🍛 Food (24% target)</option>
-              <option value="necessities">🧼 Necessities (76% target)</option>
+              <option value="food" id="opt-quick-food">🍛 Food (24% target)</option>
+              <option value="necessities" id="opt-quick-nec">🧼 Necessities (76% target)</option>
             </select>
           </div>
         </div>
@@ -1162,6 +1162,78 @@
                 <i data-lucide="upload"></i> Select Backup File
               </label>
               <input type="file" id="import-backup-file" accept=".json,application/json" class="hidden" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Allotment Budget Split Section -->
+        <div class="settings-block">
+          <h4 class="settings-block-title">
+            <i data-lucide="pie-chart" class="inline-icon"></i>
+            <span>Category Allotment Split (% Allocation)</span>
+          </h4>
+          <p class="settings-block-desc">
+            Customize how your starting cash is automatically split between <strong>Food</strong> and <strong>Necessities</strong>. Must total 100%.
+          </p>
+
+          <div class="allotment-slider-container">
+            <!-- Visual Dynamic Allocation Bar -->
+            <div class="allotment-visual-bar">
+              <div id="visual-bar-food" class="visual-segment fill-food" style="width: 24%;">
+                <span id="visual-label-food">🍛 Food 24%</span>
+              </div>
+              <div id="visual-bar-nec" class="visual-segment fill-nec" style="width: 76%;">
+                <span id="visual-label-nec">🧼 Necessities 76%</span>
+              </div>
+            </div>
+
+            <!-- Percentage Inputs Row -->
+            <div class="form-row" style="margin-top: 0.85rem;">
+              <div class="form-group flex-1">
+                <label for="setting-food-pct">🍛 Food Percentage</label>
+                <div class="input-pct-wrapper">
+                  <input type="number" id="setting-food-pct" class="form-input" min="0" max="100" value="24" step="1" />
+                  <span class="pct-suffix">%</span>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="setting-nec-pct">🧼 Necessities Percentage</label>
+                <div class="input-pct-wrapper">
+                  <input type="number" id="setting-nec-pct" class="form-input" min="0" max="100" value="76" step="1" />
+                  <span class="pct-suffix">%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Linked Range Slider -->
+            <div class="slider-control-group">
+              <div class="slider-labels-row">
+                <span class="text-amber font-bold">Food: <span id="slider-food-val">24%</span></span>
+                <span class="split-status-badge" id="split-sum-badge">Total: 100% (Balanced)</span>
+                <span class="text-blue font-bold">Necessities: <span id="slider-nec-val">76%</span></span>
+              </div>
+              <input type="range" id="allotment-split-slider" min="5" max="95" value="24" step="1" class="split-range-slider" />
+            </div>
+
+            <!-- Quick Preset Chips -->
+            <div class="preset-splits-row">
+              <span class="preset-label">Presets:</span>
+              <button type="button" class="preset-split-chip active" data-food="24" data-nec="76">Default (24/76)</button>
+              <button type="button" class="preset-split-chip" data-food="30" data-nec="70">Balanced (30/70)</button>
+              <button type="button" class="preset-split-chip" data-food="40" data-nec="60">Foodie (40/60)</button>
+              <button type="button" class="preset-split-chip" data-food="50" data-nec="50">Even (50/50)</button>
+              <button type="button" class="preset-split-chip" data-food="20" data-nec="80">Minimalist (20/80)</button>
+            </div>
+
+            <div class="checkbox-row" style="margin-top: 0.75rem;">
+              <input type="checkbox" id="reapply-split-to-active-week" checked />
+              <label for="reapply-split-to-active-week">Recalculate and apply new split to active week & coming weeks</label>
+            </div>
+
+            <div style="margin-top: 0.85rem;">
+              <button type="button" id="btn-save-allotment-split" class="btn-primary-pill btn-sm">
+                <i data-lucide="save"></i> Save Category Allotment Split
+              </button>
             </div>
           </div>
         </div>
