@@ -102,14 +102,17 @@
         </button>
 
         <!-- Bottom Student Profile Card -->
-        <div class="user-profile-pill">
-          <div class="user-avatar">
-            <span>🎓</span>
+        <div class="user-profile-pill" id="user-profile-pill">
+          <div class="user-avatar" id="user-profile-avatar">
+            <span id="user-avatar-text">🎓</span>
           </div>
           <div class="user-info">
-            <span class="user-name">College Scholar</span>
-            <span class="user-streak"><i data-lucide="zap" class="streak-icon"></i> 5 Day Streak</span>
+            <span class="user-name" id="user-profile-name">Guest Student</span>
+            <span class="user-streak" id="user-profile-status"><i data-lucide="shield" class="streak-icon"></i> Local Mode</span>
           </div>
+          <button type="button" id="btn-auth-trigger" class="profile-action-btn" title="Sign In / Manage Account">
+            <i data-lucide="log-in" id="profile-action-icon"></i>
+          </button>
         </div>
 
       </div>
@@ -1094,47 +1097,28 @@
       </div>
 
       <div class="settings-content-flow">
-        <!-- Supabase Cloud Database Section -->
+        <!-- Supabase Cloud Database & Auth Section -->
         <div class="settings-block">
           <h4 class="settings-block-title">
             <i data-lucide="database" class="inline-icon"></i>
-            <span>Supabase Cloud Database</span>
+            <span>Supabase Cloud Database & Auth</span>
           </h4>
           <p class="settings-block-desc">
-            Directly connected to your Supabase PostgreSQL cloud database for live real-time sync across devices.
+            Directly connected to your PostgreSQL database with Row Level Security (RLS) for private per-user budget sync.
           </p>
           <div class="supabase-status-box" id="supabase-modal-status-box">
             <div class="supabase-status-line">
               <span class="status-indicator-dot" id="supabase-modal-dot"></span>
               <span id="supabase-modal-status-title" class="font-bold">Checking Supabase connection...</span>
             </div>
-            <div class="supabase-url-info" id="supabase-modal-url-text">Loading URL...</div>
+            <div class="supabase-url-info" id="supabase-modal-account-text">Account: Guest Mode</div>
             <div class="supabase-actions-row">
               <button type="button" id="btn-test-supabase" class="btn-subtle btn-sm">
                 <i data-lucide="refresh-cw"></i> Test Connection
               </button>
-              <button type="button" id="btn-toggle-supabase-config" class="btn-subtle btn-sm">
-                <i data-lucide="settings"></i> Configure Credentials
+              <button type="button" id="btn-settings-auth" class="btn-primary-pill btn-sm">
+                <i data-lucide="user"></i> <span id="settings-auth-btn-label">Sign In / Register</span>
               </button>
-            </div>
-
-            <div id="supabase-config-form" class="supabase-config-form hidden" style="margin-top: 0.85rem; border-top: 1px solid var(--border-subtle); padding-top: 0.85rem;">
-              <div class="form-group" style="margin-bottom: 0.5rem;">
-                <label for="input-supabase-url" style="font-size: 0.8rem; font-weight: 600;">Supabase Project URL</label>
-                <input type="text" id="input-supabase-url" class="form-input" placeholder="https://your-project.supabase.co" />
-              </div>
-              <div class="form-group" style="margin-bottom: 0.75rem;">
-                <label for="input-supabase-key" style="font-size: 0.8rem; font-weight: 600;">Supabase Anon / Public API Key</label>
-                <input type="password" id="input-supabase-key" class="form-input" placeholder="sb_publishable_... or your anon key" />
-              </div>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button type="button" id="btn-save-supabase-creds" class="btn-primary-pill btn-sm">
-                  <i data-lucide="save"></i> Save & Reconnect
-                </button>
-                <button type="button" id="btn-reset-supabase-creds" class="btn-subtle btn-sm">
-                  Reset Defaults
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1410,6 +1394,131 @@
         <button type="button" id="cal-popover-close-btn" class="btn-text-action" style="color: var(--text-muted);">
           <span>Close</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Supabase Auth Modal (Sign In / Sign Up) -->
+  <div id="auth-modal" class="modal-overlay hidden">
+    <div class="modal-card auth-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="auth-brand-badge">
+            <span>🪙</span>
+          </div>
+          <div>
+            <h3 id="auth-modal-title">Student Account</h3>
+            <span class="modal-sub-label">Cloud Backup & Realtime Multi-Device Sync</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" data-modal="auth-modal">&times;</button>
+      </div>
+
+      <!-- Auth Tabs Switcher: Sign In vs Sign Up -->
+      <div class="auth-tabs-nav">
+        <button type="button" class="auth-tab-btn active" id="auth-tab-signin-btn">
+          <i data-lucide="log-in"></i> Sign In
+        </button>
+        <button type="button" class="auth-tab-btn" id="auth-tab-signup-btn">
+          <i data-lucide="user-plus"></i> Create Account
+        </button>
+      </div>
+
+      <div class="auth-modal-body">
+        <!-- Error & Info Alerts -->
+        <div id="auth-alert-box" class="auth-alert-box hidden"></div>
+
+        <!-- 1. Sign In Form -->
+        <form id="auth-signin-form" class="modal-form auth-form-pane active">
+          <div class="form-group">
+            <label for="signin-email-input">College / Student Email</label>
+            <div class="input-with-icon">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" id="signin-email-input" class="form-input" placeholder="e.g. scholar@university.edu" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-link">
+              <label for="signin-password-input">Password</label>
+              <button type="button" id="btn-switch-magic-link" class="link-btn">Use Magic Link instead</button>
+            </div>
+            <div class="input-password-wrapper">
+              <input type="password" id="signin-password-input" class="form-input" placeholder="Your account password" autocomplete="current-password" required />
+              <button type="button" id="toggle-signin-password" class="btn-toggle-eye" title="Toggle password visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-actions-row">
+            <button type="submit" id="btn-submit-signin" class="btn-primary-pill btn-block">
+              <i data-lucide="log-in"></i> Sign In to CampusCoin
+            </button>
+          </div>
+        </form>
+
+        <!-- 2. Sign Up Form -->
+        <form id="auth-signup-form" class="modal-form auth-form-pane hidden">
+          <p class="auth-signup-hint">
+            Create your student account to isolate and secure your personal zero-sum budget with Row Level Security (RLS).
+          </p>
+
+          <div class="form-group">
+            <label for="signup-email-input">College / Personal Email</label>
+            <div class="input-with-icon">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" id="signup-email-input" class="form-input" placeholder="e.g. scholar@university.edu" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="signup-password-input">Password (Minimum 6 characters)</label>
+            <div class="input-password-wrapper">
+              <input type="password" id="signup-password-input" class="form-input" placeholder="Create a strong password" autocomplete="new-password" minlength="6" required />
+              <button type="button" id="toggle-signup-password" class="btn-toggle-eye" title="Toggle password visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-actions-row">
+            <button type="submit" id="btn-submit-signup" class="btn-primary-pill btn-block">
+              <i data-lucide="user-plus"></i> Create Free Student Account
+            </button>
+          </div>
+        </form>
+
+        <!-- 3. Magic Link Mode (Optional Toggle) -->
+        <form id="auth-magic-form" class="modal-form auth-form-pane hidden">
+          <p class="auth-signup-hint">
+            Enter your email to receive an instant passwordless login link in your inbox.
+          </p>
+
+          <div class="form-group">
+            <label for="magic-email-input">Email Address</label>
+            <div class="input-with-icon">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" id="magic-email-input" class="form-input" placeholder="e.g. scholar@university.edu" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div class="auth-actions-row">
+            <button type="submit" id="btn-submit-magic" class="btn-primary-pill btn-block">
+              <i data-lucide="send"></i> Send Magic Link
+            </button>
+            <button type="button" id="btn-back-to-password" class="btn-subtle btn-block" style="margin-top: 0.5rem;">
+              Back to Password Sign In
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="auth-modal-footer">
+        <span class="auth-security-badge">
+          <i data-lucide="shield-check" class="shield-icon"></i>
+          <span>Encrypted with PostgreSQL Row Level Security (RLS)</span>
+        </span>
       </div>
     </div>
   </div>

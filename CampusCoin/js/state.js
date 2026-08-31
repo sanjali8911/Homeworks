@@ -9,7 +9,6 @@
  */
 
 const DB_TABLE_NAME = 'campuscoin_state';
-const DB_ROW_ID = 'default_user';
 
 const CATEGORIES = [
   { id: 'food', name: 'Food', emoji: '🍛', defaultPct: 0.24 },
@@ -419,10 +418,48 @@ class StateManager {
     // Start with baseline sample state in memory
     this.state = getSampleState();
     this.sanitizeLoadedState();
+
+    // Listen for auth state changes (login / logout)
+    if (typeof window !== 'undefined' && window.CampusSupabase && typeof window.CampusSupabase.onAuthStateChange === 'function') {
+      window.CampusSupabase.onAuthStateChange((event, session, user) => {
+        this.handleAuthStateChange(event, session, user);
+      });
+    }
   }
 
   /**
-   * Initializes Supabase connection, fetches live database state, and binds realtime listeners
+   * Helper to get active authenticated user ID (UUID)
+   */
+  getUserId() {
+    if (typeof window !== 'undefined' && window.CampusSupabase && typeof window.CampusSupabase.getCurrentUserId === 'function') {
+      return window.CampusSupabase.getCurrentUserId();
+    } else if (typeof global !== 'undefined' && global.CampusSupabase && typeof global.CampusSupabase.getCurrentUserId === 'function') {
+      return global.CampusSupabase.getCurrentUserId();
+    }
+    return null;
+  }
+
+  /**
+   * Handle user login, logout, or session renewal
+   */
+  async handleAuthStateChange(event, session, user) {
+    if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && user)) {
+      await this.init();
+    } else if (event === 'SIGNED_OUT') {
+      if (this.realtimeChannel && typeof window !== 'undefined' && window.CampusSupabase) {
+        const client = window.CampusSupabase.getClient();
+        if (client) client.removeChannel(this.realtimeChannel);
+      }
+      this.realtimeChannel = null;
+      this.state = getSampleState();
+      this.sanitizeLoadedState();
+      this.notifySyncStatus('unauthenticated', 'Signed out. Sign in to access your cloud budget.');
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Initializes Supabase connection, fetches live database state scoped to current user, and binds realtime listeners
    */
   async init() {
     this.notifySyncStatus('connecting', 'Connecting to Supabase...');
@@ -441,12 +478,31 @@ class StateManager {
         return;
       }
 
-      // Read state directly from Supabase database
-      this.notifySyncStatus('syncing', 'Fetching state from Supabase...');
+      const userId = this.getUserId();
+      if (!userId) {
+        // User not logged in: check local guest cache or keep starter sample state
+        if (typeof localStorage !== 'undefined') {
+          const guestCached = localStorage.getItem('campuscoin_guest_state');
+          if (guestCached) {
+            try {
+              this.state = JSON.parse(guestCached);
+              this.sanitizeLoadedState();
+            } catch (e) {
+              // Ignore corrupt guest cache
+            }
+          }
+        }
+        this.notifySyncStatus('unauthenticated', 'Sign in to sync your budget to Supabase Cloud.');
+        this.notifyListeners();
+        return;
+      }
+
+      // Read state directly from Supabase database for current user UUID
+      this.notifySyncStatus('syncing', 'Fetching user budget from Supabase...');
       const { data, error } = await client
         .from(DB_TABLE_NAME)
         .select('*')
-        .eq('id', DB_ROW_ID)
+        .eq('id', userId)
         .maybeSingle();
 
       if (error) {
@@ -467,7 +523,7 @@ class StateManager {
         const { error: insertError } = await client
           .from(DB_TABLE_NAME)
           .upsert({
-            id: DB_ROW_ID,
+            id: userId,
             state: this.state,
             updated_at: new Date().toISOString()
           });
@@ -478,12 +534,12 @@ class StateManager {
         } else {
           this.lastSyncTime = new Date();
           this.syncError = null;
-          this.notifySyncStatus('synced', 'Initial state seeded to Supabase Cloud');
+          this.notifySyncStatus('synced', 'Initial budget seeded to Supabase Cloud');
         }
       }
 
       // Setup Supabase Realtime Channel for live multi-device synchronization
-      this.setupRealtimeSubscription(client);
+      this.setupRealtimeSubscription(client, userId);
     } catch (e) {
       console.error('StateManager init exception:', e);
       this.syncError = e.message;
@@ -492,10 +548,10 @@ class StateManager {
   }
 
   /**
-   * Listens for PostgreSQL database changes from Supabase Realtime
+   * Listens for PostgreSQL database changes from Supabase Realtime scoped to current user
    */
-  setupRealtimeSubscription(client) {
-    if (!client || typeof client.channel !== 'function') return;
+  setupRealtimeSubscription(client, userId = this.getUserId()) {
+    if (!client || typeof client.channel !== 'function' || !userId) return;
 
     try {
       if (this.realtimeChannel) {
@@ -503,10 +559,10 @@ class StateManager {
       }
 
       this.realtimeChannel = client
-        .channel('campuscoin_state_realtime')
+        .channel(`campuscoin_state_realtime_${userId}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: DB_TABLE_NAME, filter: `id=eq.${DB_ROW_ID}` },
+          { event: '*', schema: 'public', table: DB_TABLE_NAME, filter: `id=eq.${userId}` },
           (payload) => {
             if (this.isLocallySaving) return; // Skip echo of local saves
 
@@ -583,12 +639,12 @@ class StateManager {
   async saveToSupabase(data = this.state) {
     this.isLocallySaving = true;
     this.isSyncing = true;
-    this.notifySyncStatus('syncing', 'Saving changes to Supabase...');
 
     // Synchronous optimistic notification for UI rendering
     this.notifyListeners();
 
     try {
+      const userId = this.getUserId();
       let client = null;
       if (typeof window !== 'undefined' && window.CampusSupabase) {
         client = window.CampusSupabase.getClient();
@@ -596,11 +652,12 @@ class StateManager {
         client = global.CampusSupabase.getClient();
       }
 
-      if (client) {
+      if (client && userId) {
+        this.notifySyncStatus('syncing', 'Saving changes to Supabase...');
         const { error } = await client
           .from(DB_TABLE_NAME)
           .upsert({
-            id: DB_ROW_ID,
+            id: userId,
             state: data,
             updated_at: new Date().toISOString()
           });
@@ -615,8 +672,11 @@ class StateManager {
           this.notifySyncStatus('synced', 'Saved to Supabase Cloud');
         }
       } else {
-        // Supabase client not connected yet
-        this.notifySyncStatus('unconfigured', 'Changes in memory (Supabase not connected)');
+        // Guest mode / Unauthenticated: save to local browser storage
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('campuscoin_guest_state', JSON.stringify(data));
+        }
+        this.notifySyncStatus('unauthenticated', 'Saved locally (Sign in to sync to cloud)');
       }
     } catch (err) {
       console.error('Supabase write exception:', err);
@@ -1020,11 +1080,15 @@ class StateManager {
 
     // Delete or reset row in Supabase database
     try {
+      const userId = this.getUserId();
       const client = (typeof window !== 'undefined' && window.CampusSupabase)
         ? window.CampusSupabase.getClient()
         : null;
-      if (client) {
-        await client.from(DB_TABLE_NAME).delete().eq('id', DB_ROW_ID);
+      if (client && userId) {
+        await client.from(DB_TABLE_NAME).delete().eq('id', userId);
+      }
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('campuscoin_guest_state');
       }
     } catch (e) {
       console.warn('Supabase delete error during clearAllData:', e);

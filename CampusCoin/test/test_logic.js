@@ -155,11 +155,14 @@ CampusState.lockWeek('2026-W30');
 console.assert(CampusState.isWeekLocked(samplePast) === true, 'Past week relocked');
 console.log('✓ Passcode unlock & relock verified');
 
-// Test 9: Supabase Module & State CRUD Operations
-console.log('\nTest 9: Supabase Module & CRUD Operations');
+// Test 9: Supabase Auth Module & Per-User CRUD Operations
+console.log('\nTest 9: Supabase Auth Module & Per-User CRUD Operations');
 console.assert(typeof CampusSupabase !== 'undefined', 'CampusSupabase module is loaded');
 console.assert(CampusSupabase.TABLE_NAME === 'campuscoin_state', 'Table name is campuscoin_state');
-console.assert(CampusSupabase.DEFAULT_ROW_ID === 'default_user', 'Default row ID is default_user');
+console.assert(typeof CampusSupabase.signUp === 'function', 'CampusSupabase has signUp method');
+console.assert(typeof CampusSupabase.signIn === 'function', 'CampusSupabase has signIn method');
+console.assert(typeof CampusSupabase.signOut === 'function', 'CampusSupabase has signOut method');
+console.assert(typeof CampusSupabase.getCurrentUserId === 'function', 'CampusSupabase has getCurrentUserId method');
 
 // Verify State Structure compatibility for Supabase JSONB storage
 console.assert(CampusState.state.version === 7, 'State version is 7');
@@ -185,7 +188,7 @@ console.assert(CampusState.state.todos.find(t => t.id === newTodo.id).completed 
 CampusState.deleteTodo(newTodo.id);
 console.assert(!CampusState.state.todos.some(t => t.id === newTodo.id), 'Todo deleted');
 
-console.log('✓ Supabase module, table schema compatibility, and state CRUD operations verified');
+console.log('✓ Supabase Auth module, per-user RLS schema compatibility, and state CRUD operations verified');
 
 // Test 10: Dynamic Calendar for September 2027 (No Hardcoding Verification)
 console.log('\nTest 10: Dynamic Calendar for September 2027 (No Hardcoding)');

@@ -3433,5 +3433,215 @@ input[type=number] {
   padding: 2rem 1rem;
 }
 
+/* User Profile Action Trigger Button */
+.user-profile-pill {
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.profile-action-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.profile-action-btn:hover {
+  background: var(--google-blue-soft);
+  color: var(--google-blue);
+  border-color: var(--google-blue);
+  transform: scale(1.05);
+}
+
+.profile-action-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* Supabase Auth Modal */
+.auth-modal-card {
+  max-width: 440px;
+  width: 100%;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  background: var(--bg-card);
+}
+
+.auth-brand-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a73e8, #1557b0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 10px rgba(26, 115, 232, 0.3);
+}
+
+.modal-sub-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: block;
+}
+
+.auth-tabs-nav {
+  display: flex;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0.25rem;
+  margin: 1.2rem 0 1rem 0;
+  gap: 0.25rem;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.auth-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.auth-tab-btn.active {
+  background: var(--bg-card);
+  color: var(--google-blue);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.auth-tab-btn i {
+  width: 15px;
+  height: 15px;
+}
+
+.auth-signup-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 0.85rem;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 0.85rem;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input-with-icon .form-input {
+  padding-left: 2.35rem;
+  width: 100%;
+}
+
+.label-with-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--google-blue);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+  color: var(--google-blue-hover);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.auth-alert-box {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.78rem;
+  margin-bottom: 1rem;
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.auth-alert-box.alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.auth-alert-box.alert-success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.auth-alert-box.alert-info {
+  background: var(--google-blue-soft);
+  color: var(--google-blue);
+  border: 1px solid #bfdbfe;
+}
+
+.auth-modal-footer {
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.auth-security-badge .shield-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--google-green);
+}
+
 .hidden { display: none !important; }
 

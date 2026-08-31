@@ -1,82 +1,110 @@
 # CampusCoin 🪙 – Student Personal Finance & Weekly Budget Tracker
 
-> A modern, responsive, cyber-dark personal finance single-page web application designed specifically for college students to track weekly expenses, manage allotted category budgets, track surprise anomalies, and aggregate spending into a monthly macro-summary.
+> A modern, cyber-dark zero-sum personal finance web application for college students with **Supabase Authentication**, **Row Level Security (RLS)**, weekly allowance pacing, surprise anomaly tracking, and automated monthly macro-ledgers.
 
-![CampusCoin Screenshot](assets/preview.png)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsanjali8911%2FHomeworks&project-name=campuscoin&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY&envDescription=Enter%20your%20Supabase%20Project%20URL%20and%20Anon%20Public%20API%20Key&envLink=https%3A%2F%2Fsupabase.com%2Fdashboard)
 
 ---
 
 ## 🚀 Key Features
 
-### 1. Data Storage & Persistence (Supabase PostgreSQL Cloud)
-- **Direct Supabase Cloud Persistence**: All inputs, allotted budgets, surprise anomalies, and preferences are automatically synced to your Supabase database in real-time.
-- **Multi-Device / Multi-Tab Live Sync**: Built-in PostgreSQL real-time listeners keep all open tabs and devices synchronized.
-- **Backup & Restore System**:
-  - **Export Backup**: Downloads complete historical data, weeks, and ledger as a `budget_data.json` file.
-  - **Import Backup**: Uploads and validates a JSON file to restore state into Supabase instantly.
-- **Hard Reset**: Double-confirmed "Clear All Data" option with one-click "Load Sample Student Data" preview.
+### 1. Multi-Tenant Supabase Authentication & RLS Security
+- **Per-User Isolation**: Every student gets their own private ledger securely isolated by PostgreSQL **Row Level Security (RLS)**. No shared database rows.
+- **Email + Password & Magic Links**: Seamless account creation with instant session persistence across page reloads.
+- **Zero Configuration for Students**: Students simply visit the deployed URL and sign up—no backend setup or API key entry required.
 
-### 2. Core Interface & Weekly Planner Table
-- **Weekly Structure**: Sunday through Saturday rows with inline currency inputs.
-- **Category Columns**:
-  1. 🍕 **Food** (Dining, groceries, coffee)
-  2. 🧼 **Necessities** (Toiletries, laundry)
-  3. 👕 **Clothes** (Apparel & accessories)
-  
+### 2. Zero-Sum Supreme Pool & Allowance Pacing
+- **Starting Cash Foundation**: Starting cash dictates total spending pool (default 24% to Food, 76% to Necessities, customizable in Settings).
+- **Safe-to-Spend Daily Hero Metric**:
+  $$\text{Safe Daily Allowance} = \frac{\text{Remaining Cash Cushion} - \text{Surprises}}{\text{Remaining Days in Week (including today)}}$$
+- **Zero-Sum Borrowing**: Borrow funds between categories with automatic audit trail and red ⚡ badges.
+- **Surprise Anomaly Tracker**: Absorbs emergency expenses directly from Necessities without breaking zero-sum math.
 
-### 3. Smart Calculations & Advanced Features
-- **"Safe to Spend Today" Hero Widget**:
-  $$\text{Safe to Spend Today} = \frac{\text{Remaining Weekly Budget} - \text{Surprises}}{\text{Remaining Days in Week (including today)}}$$
-  Calculates your dynamic daily allowance with pacing feedback (e.g. *"$18.50 safe today / 4 days left"*).
-- **Surprise / Unexpected Expense Anomaly Tracker**: Dedicated row to log unbudgeted emergency costs (e.g. lab fee, broken charger) and compute their exact impact on weekly cash flow.
-- **Automated Running Math**: Starting Balance, daily totals, category totals, and projected Ending Balance update in real-time.
-- **Campus AI Coach Insights**: Dynamic rule-based recommendations tailored to college life (campus meal prep, free student union events, textbook library reserves, .edu discounts).
+### 3. Live Cash Balance & Inflows
+- **Real-Time Running Balance**: Tracks all incoming funds (stipend, freelance, parents) and live outflows.
+- **Multi-Device Live Sync**: PostgreSQL Realtime synchronization streams edits instantly across tabs and mobile devices.
 
-### 4. Notifications, Exports & Macro Aggregation
-- **Browser Reminders**: Scheduled daily reminder system (e.g. 9:00 PM) prompting: *"Time to update your daily spends!"* with custom Web Audio API pleasant coin chime.
-- **Weekly Exports**:
-  - **CSV Export**: Clean spreadsheet export of current week matrix.
-  - **PDF Export**: Formatted printable weekly budget report.
-- **Monthly Book Tab**: Aggregates finalized weekly tables into a monthly ledger (Total Monthly Allotted vs. Total Monthly Spent, net savings rate, and category distribution donut charts).
+### 4. Statements & Macro Aggregation
+- **Weekly & Monthly PDF Statements**: Multi-page statements with macro KPI cards, 4-week summary ledger, and itemized daily matrix.
+- **CSV Spreadsheets**: Download structured CSV logs for spreadsheet analysis.
 
 ---
 
-## 🛠️ Supabase Setup Guide
+## 🛠️ Deployer Setup (One-Time Setup)
 
-### 1. Configure `.env.local`
-Add your Supabase project credentials in `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-here
-```
+As the maintainer/deployer, you only need to create **ONE** Supabase project for all your users:
 
-### 2. Run SQL in Supabase SQL Editor
-Open your Supabase dashboard, go to the **SQL Editor**, and run the following script:
+### Step 1: Run SQL in Supabase SQL Editor
+Open your [Supabase Dashboard](https://supabase.com/dashboard), navigate to the **SQL Editor**, and run the migration script:
+
 ```sql
--- 1. Create the CampusCoin state table
-CREATE TABLE IF NOT EXISTS campuscoin_state (
-    id TEXT PRIMARY KEY DEFAULT 'default_user',
-    state JSONB NOT NULL,
+-- 1. Drop existing legacy table if it was created with TEXT id
+DROP TABLE IF EXISTS public.campuscoin_state CASCADE;
+
+-- 2. Create the CampusCoin state table linked to authenticated users (UUID)
+CREATE TABLE public.campuscoin_state (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    state JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Disable Row Level Security (RLS)
-ALTER TABLE campuscoin_state DISABLE ROW LEVEL SECURITY;
+-- 3. Turn ON Row Level Security (RLS)
+ALTER TABLE public.campuscoin_state ENABLE ROW LEVEL SECURITY;
 
--- 3. Enable Realtime broadcasting for live multi-device syncing
-ALTER PUBLICATION supabase_realtime ADD TABLE campuscoin_state;
+-- 4. Security Policy: Authenticated students can only access & manage their own row
+CREATE POLICY "Users can manage own campuscoin_state"
+ON public.campuscoin_state
+FOR ALL
+TO authenticated
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
 
--- 4. Seed initial default record placeholder
-INSERT INTO campuscoin_state (id, state, updated_at)
-VALUES ('default_user', '{}'::jsonb, now())
-ON CONFLICT (id) DO NOTHING;
+-- 5. Enable Realtime broadcasting for live sync
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND tablename = 'campuscoin_state'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.campuscoin_state;
+  END IF;
+END $$;
 ```
+
+*(This SQL is also stored in [`supabase/migrations/20260831_init_auth_rls.sql`](supabase/migrations/20260831_init_auth_rls.sql).)*
 
 ---
 
-## 🚀 Running Locally
+### Step 2: 1-Click Deploy to Vercel
+
+Click the **Deploy with Vercel** button above or link your GitHub repo to Vercel and add your project environment variables:
+
+| Variable Name | Value Description |
+| :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL (`https://xyz.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Public / Anon API Key |
+
+---
+
+## 👨‍🎓 Student Experience (Zero Setup Required)
+
+1. Open your deployed CampusCoin URL.
+2. Click **Create Account** or **Sign In** with email + password.
+3. Your personal zero-sum budget is created instantly and securely synced across all your devices!
+
+---
+
+## 💻 Running Locally
+
 ```bash
+# 1. Install dependencies
 npm install
+
+# 2. Run unit & logic verification tests
 npm test
+
+# 3. Start local development server
 npm run dev
+# Open http://localhost:3000
 ```

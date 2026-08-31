@@ -1,16 +1,18 @@
 /**
- * CampusCoin Supabase Integration Module (V7.0)
- * Connects directly to Supabase PostgreSQL using NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
- * Handles client initialization, .env.local parsing, connection testing, and real-time syncing.
+ * CampusCoin Supabase Integration Module (V8.0)
+ * Handles client initialization, Supabase Auth (Sign Up, Sign In, Sign Out, Session Persistence),
+ * and user-scoped PostgreSQL persistence with Row Level Security (RLS).
  */
 
 (function () {
   const DEFAULT_TABLE = 'campuscoin_state';
-  const DEFAULT_ROW_ID = 'default_user';
 
   let supabaseClient = null;
   let connectionStatus = 'initializing'; // 'initializing' | 'connected' | 'connecting' | 'unconfigured' | 'error'
+  let currentUser = null;
+  let currentSession = null;
   let statusListeners = [];
+  let authListeners = [];
   let credentials = {
     url: '',
     anonKey: ''
@@ -23,9 +25,30 @@
     connectionStatus = status;
     statusListeners.forEach(fn => {
       try {
-        fn({ status, message, details, isConfigured: isConfigured() });
+        fn({
+          status,
+          message,
+          details,
+          isConfigured: isConfigured(),
+          user: currentUser
+        });
       } catch (err) {
         console.error('Supabase status listener error:', err);
+      }
+    });
+  }
+
+  /**
+   * Helper to notify registered auth listeners about login/logout/session changes
+   */
+  function notifyAuth(event, session) {
+    currentSession = session;
+    currentUser = session?.user || null;
+    authListeners.forEach(fn => {
+      try {
+        fn(event, session, currentUser);
+      } catch (err) {
+        console.error('Supabase auth listener error:', err);
       }
     });
   }
@@ -57,7 +80,6 @@
       if (eqIdx > 0) {
         const key = trimmed.substring(0, eqIdx).trim();
         let val = trimmed.substring(eqIdx + 1).trim();
-        // Remove enclosing quotes if present
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.slice(1, -1);
         }
@@ -68,18 +90,18 @@
   }
 
   /**
-   * Asynchronously load environment variables from multiple possible sources:
-   * 1. localStorage overrides (user custom settings in UI)
+   * Asynchronously load environment variables from multiple sources:
+   * 1. localStorage overrides (if any)
    * 2. window.CAMPUS_CONFIG / window.ENV / window.NEXT_PUBLIC_*
-   * 3. process.env (Node / SSR / Bundlers)
-   * 4. .env.local file fetch or fs read
+   * 3. process.env (Node / SSR / Test runner)
+   * 4. .env.local / .env fetch or fs read
    * 5. Built-in default credentials fallback
    */
   async function loadCredentials() {
     let url = '';
     let key = '';
 
-    // 1. Check localStorage override first (if user explicitly configured them in Settings)
+    // 1. Check localStorage override first
     if (typeof localStorage !== 'undefined') {
       const storedUrl = localStorage.getItem('campuscoin_supabase_url');
       const storedKey = localStorage.getItem('campuscoin_supabase_key');
@@ -89,7 +111,7 @@
       }
     }
 
-    // 2. Check window / config variables (from js/config.js or injected scripts)
+    // 2. Check window / config variables
     if ((!url || !key) && typeof window !== 'undefined') {
       if (window.CAMPUS_CONFIG && window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_URL && window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         url = window.CAMPUS_CONFIG.NEXT_PUBLIC_SUPABASE_URL;
@@ -143,7 +165,7 @@
             return parseEnvText(text);
           }
         } catch (e) {
-          // Network fetch error for .env file (e.g. 404 or blocked by server)
+          // Network fetch error for .env file
         }
         return {};
       };
@@ -161,7 +183,7 @@
       }
     }
 
-    // 6. Final fallback project defaults
+    // 6. Central fallback project defaults
     if (!url || !key) {
       url = 'https://fanrgjutotrgejbpxzxp.supabase.co';
       key = 'sb_publishable_B8FTQUZYWuNLcChsTenYmw_6fTkZFx-';
@@ -172,7 +194,7 @@
   }
 
   /**
-   * Initializes or recreates the Supabase client
+   * Initializes or recreates the Supabase client with Auth Session Persistence
    */
   async function initClient(customUrl = null, customKey = null) {
     if (customUrl && customKey) {
@@ -211,36 +233,115 @@
         throw new Error('Supabase client library (@supabase/supabase-js) is not loaded.');
       }
 
+      // Initialize Supabase Client with Auth Session Persistence enabled
       supabaseClient = createClientFn(credentials.url, credentials.anonKey, {
         auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
         }
       });
 
-      // Quick ping test
-      const { data, error } = await supabaseClient
-        .from(DEFAULT_TABLE)
-        .select('id, updated_at')
-        .limit(1);
-
-      if (error) {
-        // If table doesn't exist yet or other Postgres error
-        if (error.code === '42P01' || error.message.includes('does not exist')) {
-          notifyStatus('error', `Table '${DEFAULT_TABLE}' not found. Please run the SQL setup script in your Supabase SQL Editor.`, error);
-        } else {
-          notifyStatus('error', `Supabase connection error: ${error.message}`, error);
-        }
-        return supabaseClient;
+      // Get initial auth session if available
+      try {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        currentSession = sessionData?.session || null;
+        currentUser = currentSession?.user || null;
+      } catch (authErr) {
+        console.warn('Initial session check warning:', authErr);
       }
 
-      notifyStatus('connected', 'Connected to Supabase PostgreSQL Database');
+      // Subscribe to Supabase Auth state changes
+      if (supabaseClient.auth && typeof supabaseClient.auth.onAuthStateChange === 'function') {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+          currentSession = session;
+          currentUser = session?.user || null;
+          notifyAuth(event, session);
+        });
+      }
+
+      notifyStatus('connected', 'Connected to Supabase Cloud Database');
       return supabaseClient;
     } catch (err) {
       notifyStatus('error', err.message || 'Failed to initialize Supabase client', err);
       console.error('Supabase init error:', err);
       return null;
+    }
+  }
+
+  /**
+   * Supabase Auth: Register new user with Email + Password
+   */
+  async function signUp(email, password) {
+    if (!supabaseClient) await initClient();
+    if (!supabaseClient) throw new Error('Supabase client is not initialized.');
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email.trim(),
+      password: password
+    });
+
+    if (error) throw error;
+    if (data.session) {
+      currentSession = data.session;
+      currentUser = data.user;
+      notifyAuth('SIGNED_IN', currentSession);
+    }
+    return data;
+  }
+
+  /**
+   * Supabase Auth: Sign In with Email + Password
+   */
+  async function signIn(email, password) {
+    if (!supabaseClient) await initClient();
+    if (!supabaseClient) throw new Error('Supabase client is not initialized.');
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email.trim(),
+      password: password
+    });
+
+    if (error) throw error;
+    currentSession = data.session;
+    currentUser = data.user;
+    notifyAuth('SIGNED_IN', currentSession);
+    return data;
+  }
+
+  /**
+   * Supabase Auth: Sign In with Magic Link (OTP)
+   */
+  async function signInWithOtp(email) {
+    if (!supabaseClient) await initClient();
+    if (!supabaseClient) throw new Error('Supabase client is not initialized.');
+
+    const redirectTo = (typeof window !== 'undefined' && window.location) ? window.location.origin : undefined;
+    const { data, error } = await supabaseClient.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Supabase Auth: Sign Out current user
+   */
+  async function signOut() {
+    if (!supabaseClient) return;
+
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    } finally {
+      currentSession = null;
+      currentUser = null;
+      notifyAuth('SIGNED_OUT', null);
     }
   }
 
@@ -257,12 +358,22 @@
 
     try {
       const startTime = Date.now();
-      const { data, error } = await supabaseClient
-        .from(DEFAULT_TABLE)
-        .select('id, updated_at')
-        .eq('id', DEFAULT_ROW_ID)
-        .maybeSingle();
+      
+      // If user is authenticated, query their row; otherwise query schema
+      let query;
+      if (currentUser && currentUser.id) {
+        query = supabaseClient
+          .from(DEFAULT_TABLE)
+          .select('id, updated_at')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+      } else {
+        query = supabaseClient
+          .from(DEFAULT_TABLE)
+          .select('id', { count: 'exact', head: true });
+      }
 
+      const { data, error } = await query;
       const duration = Date.now() - startTime;
 
       if (error) {
@@ -276,7 +387,8 @@
       return {
         success: true,
         message: `Successfully connected to Supabase (${duration}ms response time).`,
-        data
+        data,
+        authenticated: Boolean(currentUser)
       };
     } catch (err) {
       return {
@@ -288,7 +400,7 @@
   }
 
   /**
-   * Set custom credentials and save to optional storage override
+   * Set custom credentials (used for dev or automated tests)
    */
   async function setCredentials(url, anonKey, persist = false) {
     if (persist && typeof localStorage !== 'undefined') {
@@ -303,7 +415,6 @@
    */
   const CampusSupabase = {
     TABLE_NAME: DEFAULT_TABLE,
-    DEFAULT_ROW_ID: DEFAULT_ROW_ID,
 
     init: initClient,
     getClient: () => supabaseClient,
@@ -311,17 +422,38 @@
     getStatus: () => ({
       status: connectionStatus,
       isConfigured: isConfigured(),
-      url: credentials.url
+      url: credentials.url,
+      user: currentUser
     }),
     isConfigured,
     testConnection,
     setCredentials,
+
+    // Auth methods
+    signUp,
+    signIn,
+    signInWithOtp,
+    signOut,
+    getCurrentUser: () => currentUser,
+    getCurrentUserId: () => currentUser?.id || null,
+    getSession: () => currentSession,
+
+    onAuthStateChange: (listener) => {
+      authListeners.push(listener);
+      // Immediately notify listener of current state
+      listener(currentUser ? 'INITIAL_SESSION' : 'NO_SESSION', currentSession, currentUser);
+      return () => {
+        authListeners = authListeners.filter(l => l !== listener);
+      };
+    },
+
     onStatusChange: (listener) => {
       statusListeners.push(listener);
       listener({
         status: connectionStatus,
         isConfigured: isConfigured(),
-        url: credentials.url
+        url: credentials.url,
+        user: currentUser
       });
       return () => {
         statusListeners = statusListeners.filter(l => l !== listener);

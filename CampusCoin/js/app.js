@@ -34,6 +34,9 @@ function initApp() {
 
   // Initialize Supabase Database Connection & Cloud Sync
   setupSupabaseSyncUI();
+  setupAuthActions();
+  updateUserProfileUI();
+
   CampusState.init().then(() => {
     renderAll();
   });
@@ -61,21 +64,16 @@ function setupSupabaseSyncUI() {
     const iconEl = document.getElementById('supabase-status-icon');
     const modalDot = document.getElementById('supabase-modal-dot');
     const modalTitle = document.getElementById('supabase-modal-status-title');
-    const modalUrl = document.getElementById('supabase-modal-url-text');
+    const user = window.CampusSupabase?.getCurrentUser();
 
     const status = info.status || 'synced';
-    const credentials = (window.CampusSupabase && window.CampusSupabase.getCredentials) ? window.CampusSupabase.getCredentials() : {};
-
-    if (modalUrl) {
-      modalUrl.textContent = credentials.url ? `URL: ${credentials.url}` : 'URL: Not configured in .env.local';
-    }
 
     if (modalDot) {
-      modalDot.className = 'status-indicator-dot ' + status;
+      modalDot.className = 'status-indicator-dot ' + (status === 'unauthenticated' ? 'connected' : status);
     }
 
     if (status === 'synced' || status === 'connected') {
-      if (textEl) textEl.textContent = 'Supabase Cloud Synced';
+      if (textEl) textEl.textContent = user ? 'Supabase Cloud Synced' : 'Supabase Connected';
       if (iconEl) {
         iconEl.setAttribute('data-lucide', 'cloud');
         iconEl.style.color = '#10b981';
@@ -88,13 +86,20 @@ function setupSupabaseSyncUI() {
         iconEl.style.color = '#3b82f6';
       }
       if (modalTitle) modalTitle.textContent = 'Synchronizing with Supabase...';
+    } else if (status === 'unauthenticated') {
+      if (textEl) textEl.textContent = 'Guest Mode (Local)';
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', 'shield');
+        iconEl.style.color = '#64748b';
+      }
+      if (modalTitle) modalTitle.textContent = 'Local Mode: Sign in to sync your budget to Supabase Cloud';
     } else if (status === 'unconfigured') {
-      if (textEl) textEl.textContent = 'Supabase: Setup .env.local';
+      if (textEl) textEl.textContent = 'Supabase: Pending Config';
       if (iconEl) {
         iconEl.setAttribute('data-lucide', 'alert-triangle');
         iconEl.style.color = '#f59e0b';
       }
-      if (modalTitle) modalTitle.textContent = 'Credentials pending in .env.local';
+      if (modalTitle) modalTitle.textContent = 'Credentials pending in environment variables';
     } else if (status === 'error') {
       if (textEl) textEl.textContent = 'Supabase Sync Error';
       if (iconEl) {
@@ -104,6 +109,7 @@ function setupSupabaseSyncUI() {
       if (modalTitle) modalTitle.textContent = info.message || 'Supabase Connection Error';
     }
 
+    updateUserProfileUI(user);
     if (window.lucide) lucide.createIcons();
   };
 
@@ -1981,7 +1987,7 @@ function setupSettingsActions() {
           CampusNotifications.showToast(res.message, 'success');
           CampusNotifications.playChime('success');
         } else {
-          CampusNotifications.showToast(`Supabase Error: ${res.message}`, 'error');
+          CampusNotifications.showToast(`Supabase: ${res.message}`, 'error');
         }
       }
 
@@ -1991,66 +1997,25 @@ function setupSettingsActions() {
     });
   }
 
-  // Supabase Custom Credentials Form
-  const toggleConfigBtn = document.getElementById('btn-toggle-supabase-config');
-  const configForm = document.getElementById('supabase-config-form');
-  const inputUrl = document.getElementById('input-supabase-url');
-  const inputKey = document.getElementById('input-supabase-key');
-  const saveCredsBtn = document.getElementById('btn-save-supabase-creds');
-  const resetCredsBtn = document.getElementById('btn-reset-supabase-creds');
-
-  if (toggleConfigBtn && configForm) {
-    toggleConfigBtn.addEventListener('click', () => {
-      configForm.classList.toggle('hidden');
-      if (!configForm.classList.contains('hidden') && window.CampusSupabase) {
-        const creds = window.CampusSupabase.getCredentials();
-        if (inputUrl) inputUrl.value = creds.url || '';
-        if (inputKey) inputKey.value = creds.anonKey || '';
-      }
-    });
-  }
-
-  if (saveCredsBtn && window.CampusSupabase) {
-    saveCredsBtn.addEventListener('click', async () => {
-      const url = (inputUrl ? inputUrl.value : '').trim();
-      const key = (inputKey ? inputKey.value : '').trim();
-
-      if (!url || !key) {
-        CampusNotifications.showToast('Please enter both Supabase Project URL and API Key', 'error');
-        return;
-      }
-
-      saveCredsBtn.disabled = true;
-      saveCredsBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Connecting...';
-      if (window.lucide) lucide.createIcons();
-
-      await window.CampusSupabase.setCredentials(url, key, true);
-      const res = await window.CampusSupabase.testConnection();
-
-      saveCredsBtn.disabled = false;
-      saveCredsBtn.innerHTML = '<i data-lucide="save"></i> Save & Reconnect';
-      if (window.lucide) lucide.createIcons();
-
-      if (res.success) {
-        CampusNotifications.showToast('Credentials saved! Connected to Supabase.', 'success');
-        CampusNotifications.playChime('success');
-        if (CampusState.init) CampusState.init();
+  const settingsAuthBtn = document.getElementById('btn-settings-auth');
+  if (settingsAuthBtn) {
+    settingsAuthBtn.addEventListener('click', () => {
+      closeModal('settings-modal');
+      const user = window.CampusSupabase?.getCurrentUser();
+      if (user) {
+        showConfirmModal(
+          'Sign Out of CampusCoin?',
+          `Are you sure you want to sign out from <strong>${user.email}</strong>?`,
+          async () => {
+            await window.CampusSupabase.signOut();
+            CampusNotifications.showToast('Signed out successfully.', 'info');
+          },
+          null,
+          { confirmText: 'Sign Out', isDanger: true }
+        );
       } else {
-        CampusNotifications.showToast(`Connection failed: ${res.message}`, 'error');
+        openModal('auth-modal');
       }
-    });
-  }
-
-  if (resetCredsBtn && window.CampusSupabase) {
-    resetCredsBtn.addEventListener('click', async () => {
-      localStorage.removeItem('campuscoin_supabase_url');
-      localStorage.removeItem('campuscoin_supabase_key');
-      await window.CampusSupabase.init();
-      const creds = window.CampusSupabase.getCredentials();
-      if (inputUrl) inputUrl.value = creds.url || '';
-      if (inputKey) inputKey.value = creds.anonKey || '';
-      CampusNotifications.showToast('Reset to default project credentials', 'success');
-      if (CampusState.init) CampusState.init();
     });
   }
 
@@ -2654,4 +2619,277 @@ function showConfirmModal(title, message, onConfirm, onCancel, options = {}) {
   document.addEventListener('keydown', handleEscapeKey);
 
   modal.classList.remove('hidden');
+}
+
+/**
+ * Supabase Auth Modal & User Profile Controller
+ */
+function setupAuthActions() {
+  const authModal = document.getElementById('auth-modal');
+  const btnAuthTrigger = document.getElementById('btn-auth-trigger');
+  const userProfilePill = document.getElementById('user-profile-pill');
+  const tabSignInBtn = document.getElementById('auth-tab-signin-btn');
+  const tabSignUpBtn = document.getElementById('auth-tab-signup-btn');
+  const signInForm = document.getElementById('auth-signin-form');
+  const signUpForm = document.getElementById('auth-signup-form');
+  const magicForm = document.getElementById('auth-magic-form');
+  const alertBox = document.getElementById('auth-alert-box');
+  const switchMagicBtn = document.getElementById('btn-switch-magic-link');
+  const backToPassBtn = document.getElementById('btn-back-to-password');
+  const toggleSigninPassBtn = document.getElementById('toggle-signin-password');
+  const toggleSignupPassBtn = document.getElementById('toggle-signup-password');
+
+  const showAlert = (message, type = 'error') => {
+    if (!alertBox) return;
+    alertBox.textContent = message;
+    alertBox.className = `auth-alert-box alert-${type}`;
+  };
+
+  const clearAlert = () => {
+    if (alertBox) {
+      alertBox.textContent = '';
+      alertBox.className = 'auth-alert-box hidden';
+    }
+  };
+
+  const switchTab = (tab) => {
+    clearAlert();
+    if (tab === 'signin') {
+      tabSignInBtn?.classList.add('active');
+      tabSignUpBtn?.classList.remove('active');
+      signInForm?.classList.remove('hidden');
+      signUpForm?.classList.add('hidden');
+      magicForm?.classList.add('hidden');
+    } else if (tab === 'signup') {
+      tabSignUpBtn?.classList.add('active');
+      tabSignInBtn?.classList.remove('active');
+      signUpForm?.classList.remove('hidden');
+      signInForm?.classList.add('hidden');
+      magicForm?.classList.add('hidden');
+    } else if (tab === 'magic') {
+      signInForm?.classList.add('hidden');
+      signUpForm?.classList.add('hidden');
+      magicForm?.classList.remove('hidden');
+    }
+  };
+
+  tabSignInBtn?.addEventListener('click', () => switchTab('signin'));
+  tabSignUpBtn?.addEventListener('click', () => switchTab('signup'));
+  switchMagicBtn?.addEventListener('click', () => switchTab('magic'));
+  backToPassBtn?.addEventListener('click', () => switchTab('signin'));
+
+  // Toggle password visibility
+  if (toggleSigninPassBtn) {
+    toggleSigninPassBtn.addEventListener('click', () => {
+      const input = document.getElementById('signin-password-input');
+      if (input) {
+        input.type = input.type === 'password' ? 'text' : 'password';
+      }
+    });
+  }
+  if (toggleSignupPassBtn) {
+    toggleSignupPassBtn.addEventListener('click', () => {
+      const input = document.getElementById('signup-password-input');
+      if (input) {
+        input.type = input.type === 'password' ? 'text' : 'password';
+      }
+    });
+  }
+
+  // Profile Pill Click / Auth Trigger
+  const handleAuthTrigger = () => {
+    const user = window.CampusSupabase?.getCurrentUser();
+    if (user) {
+      showConfirmModal(
+        'Sign Out of CampusCoin?',
+        `Are you sure you want to sign out from <strong>${user.email}</strong>? Your budget is safely synced to the cloud.`,
+        async () => {
+          await window.CampusSupabase.signOut();
+          CampusNotifications.showToast('Signed out successfully.', 'info');
+        },
+        null,
+        { confirmText: 'Sign Out', isDanger: true }
+      );
+    } else {
+      clearAlert();
+      switchTab('signin');
+      openModal('auth-modal');
+    }
+  };
+
+  btnAuthTrigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleAuthTrigger();
+  });
+
+  userProfilePill?.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-auth-trigger')) return;
+    handleAuthTrigger();
+  });
+
+  // 1. Sign In Submission
+  if (signInForm) {
+    signInForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+      const email = document.getElementById('signin-email-input')?.value || '';
+      const password = document.getElementById('signin-password-input')?.value || '';
+      const submitBtn = document.getElementById('btn-submit-signin');
+
+      if (!email || !password) {
+        showAlert('Please enter both your email and password.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Signing in...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        await window.CampusSupabase.signIn(email, password);
+        closeModal('auth-modal');
+        CampusNotifications.showToast(`Welcome back, ${email.split('@')[0]}!`, 'success');
+        CampusNotifications.playChime('success');
+      } catch (err) {
+        showAlert(err.message || 'Failed to sign in. Please check your credentials.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i data-lucide="log-in"></i> Sign In to CampusCoin';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    });
+  }
+
+  // 2. Sign Up Submission
+  if (signUpForm) {
+    signUpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+      const email = document.getElementById('signup-email-input')?.value || '';
+      const password = document.getElementById('signup-password-input')?.value || '';
+      const submitBtn = document.getElementById('btn-submit-signup');
+
+      if (!email || !password) {
+        showAlert('Please provide both email and password.');
+        return;
+      }
+      if (password.length < 6) {
+        showAlert('Password must be at least 6 characters.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Creating account...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await window.CampusSupabase.signUp(email, password);
+        if (res.user && !res.session) {
+          showAlert('Account created! Please check your email to confirm registration.', 'success');
+        } else {
+          closeModal('auth-modal');
+          CampusNotifications.showToast(`Account created! Logged in as ${email}.`, 'success');
+          CampusNotifications.playChime('success');
+        }
+      } catch (err) {
+        showAlert(err.message || 'Failed to register account.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i data-lucide="user-plus"></i> Create Free Student Account';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    });
+  }
+
+  // 3. Magic Link Submission
+  if (magicForm) {
+    magicForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+      const email = document.getElementById('magic-email-input')?.value || '';
+      const submitBtn = document.getElementById('btn-submit-magic');
+
+      if (!email) {
+        showAlert('Please enter your email address.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Sending link...';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        await window.CampusSupabase.signInWithOtp(email);
+        showAlert('Magic login link sent! Check your inbox to sign in.', 'info');
+      } catch (err) {
+        showAlert(err.message || 'Failed to send magic link.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i data-lucide="send"></i> Send Magic Link';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    });
+  }
+
+  // Listen to Auth State changes and update user profile header & status
+  if (window.CampusSupabase?.onAuthStateChange) {
+    window.CampusSupabase.onAuthStateChange((event, session, user) => {
+      updateUserProfileUI(user);
+    });
+  }
+}
+
+function updateUserProfileUI(user = window.CampusSupabase?.getCurrentUser()) {
+  const profileNameEl = document.getElementById('user-profile-name');
+  const profileStatusEl = document.getElementById('user-profile-status');
+  const profileAvatarText = document.getElementById('user-avatar-text');
+  const profileBtn = document.getElementById('btn-auth-trigger');
+  const modalAccountText = document.getElementById('supabase-modal-account-text');
+  const settingsAuthLabel = document.getElementById('settings-auth-btn-label');
+
+  if (user && user.email) {
+    const handle = user.email.split('@')[0];
+    const initial = handle[0].toUpperCase();
+    if (profileNameEl) profileNameEl.textContent = handle;
+    if (profileStatusEl) profileStatusEl.innerHTML = '<i data-lucide="shield-check" class="streak-icon"></i> Cloud Synced';
+    if (profileAvatarText) profileAvatarText.textContent = initial;
+    if (profileBtn) {
+      profileBtn.title = 'Sign Out';
+      profileBtn.innerHTML = '<i data-lucide="log-out"></i>';
+    }
+    if (modalAccountText) {
+      modalAccountText.textContent = `Account: ${user.email} (${(user.id || '').substring(0, 8)}...)`;
+    }
+    if (settingsAuthLabel) {
+      settingsAuthLabel.textContent = 'Sign Out';
+    }
+  } else {
+    if (profileNameEl) profileNameEl.textContent = 'Guest Student';
+    if (profileStatusEl) profileStatusEl.innerHTML = '<i data-lucide="shield" class="streak-icon"></i> Local Mode';
+    if (profileAvatarText) profileAvatarText.textContent = '🎓';
+    if (profileBtn) {
+      profileBtn.title = 'Sign In / Register';
+      profileBtn.innerHTML = '<i data-lucide="log-in"></i>';
+    }
+    if (modalAccountText) {
+      modalAccountText.textContent = 'Account: Guest Mode (Sign in to sync to cloud)';
+    }
+    if (settingsAuthLabel) {
+      settingsAuthLabel.textContent = 'Sign In / Register';
+    }
+  }
+
+  if (window.lucide) lucide.createIcons();
 }
