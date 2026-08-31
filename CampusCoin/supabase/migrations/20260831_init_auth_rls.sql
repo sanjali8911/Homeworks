@@ -12,14 +12,19 @@ CREATE TABLE public.campuscoin_state (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. Enable Row Level Security (RLS) on campuscoin_state
+-- 3. Grant table permissions to authenticated, anon, and service_role
+GRANT ALL ON TABLE public.campuscoin_state TO authenticated;
+GRANT ALL ON TABLE public.campuscoin_state TO service_role;
+GRANT ALL ON TABLE public.campuscoin_state TO anon;
+
+-- 4. Enable Row Level Security (RLS) on campuscoin_state
 ALTER TABLE public.campuscoin_state ENABLE ROW LEVEL SECURITY;
 
--- 4. Drop any old policies if they exist
+-- 5. Drop any old policies if they exist
 DROP POLICY IF EXISTS "Users can manage own campuscoin_state" ON public.campuscoin_state;
 DROP POLICY IF EXISTS "Users can access and manage their own state" ON public.campuscoin_state;
 
--- 5. Create secure RLS Policy: Authenticated users can only manage their own record
+-- 6. Create secure RLS Policy: Authenticated users can only manage their own record
 CREATE POLICY "Users can manage own campuscoin_state"
 ON public.campuscoin_state
 FOR ALL
@@ -27,7 +32,7 @@ TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 6. Enable Realtime broadcasting for live multi-device syncing
+-- 7. Enable Realtime broadcasting for live multi-device syncing
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -40,7 +45,7 @@ BEGIN
   END IF;
 END $$;
 
--- 7. Trigger to automatically update updated_at on state modifications
+-- 8. Trigger to automatically update updated_at on state modifications
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

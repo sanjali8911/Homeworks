@@ -159,12 +159,27 @@ const CampusNotifications = {
     }
   },
 
+  recentToasts: new Map(),
+
   /**
    * In-app Toast Banner System
    */
   showToast(message, type = 'info', title = null) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+
+    // Deduplicate identical toasts within 3 seconds
+    const key = `${type}:${message}`;
+    const now = Date.now();
+    if (this.recentToasts.has(key) && (now - this.recentToasts.get(key) < 3000)) {
+      return;
+    }
+    this.recentToasts.set(key, now);
+
+    // Limit maximum stacked toasts on screen to 3
+    if (container.children.length >= 3) {
+      container.firstElementChild?.remove();
+    }
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;

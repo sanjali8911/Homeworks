@@ -48,10 +48,15 @@ CREATE TABLE public.campuscoin_state (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. Turn ON Row Level Security (RLS)
+-- 3. Grant table permissions to authenticated, anon, and service_role
+GRANT ALL ON TABLE public.campuscoin_state TO authenticated;
+GRANT ALL ON TABLE public.campuscoin_state TO service_role;
+GRANT ALL ON TABLE public.campuscoin_state TO anon;
+
+-- 4. Turn ON Row Level Security (RLS)
 ALTER TABLE public.campuscoin_state ENABLE ROW LEVEL SECURITY;
 
--- 4. Security Policy: Authenticated students can only access & manage their own row
+-- 5. Security Policy: Authenticated students can only access & manage their own row
 CREATE POLICY "Users can manage own campuscoin_state"
 ON public.campuscoin_state
 FOR ALL
@@ -59,7 +64,7 @@ TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 5. Enable Realtime broadcasting for live sync
+-- 6. Enable Realtime broadcasting for live sync
 DO $$
 BEGIN
   IF NOT EXISTS (
