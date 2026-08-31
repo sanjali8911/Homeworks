@@ -17,6 +17,7 @@ let selectedMonthlyBookMonth = null;
 let pendingBorrowing = null;
 let pendingBudgetChange = null;
 let pendingActionAfterUnlock = null;
+let currentActiveTab = 'weekly-tab';
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) lucide.createIcons();
@@ -140,6 +141,11 @@ function renderAll() {
 
   // 6. Interactive Charts
   CampusCharts.updateCharts(week, state, selectedMonthlyBookMonth);
+
+  // 7. Dynamic Export Dropdown Synchronization
+  if (typeof updateExportDropdown === 'function') {
+    updateExportDropdown();
+  }
 
   if (window.lucide) lucide.createIcons();
 }
@@ -1538,6 +1544,7 @@ function setupNavigation() {
 }
 
 function switchTab(tabId) {
+  currentActiveTab = tabId;
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.side-nav .nav-item').forEach(b => b.classList.remove('active'));
 
@@ -1554,6 +1561,10 @@ function switchTab(tabId) {
     renderMonthlyBook(CampusState.state, CampusState.getCurrency());
   } else if (tabId === 'todos-tab') {
     renderTodoList();
+  }
+
+  if (typeof updateExportDropdown === 'function') {
+    updateExportDropdown();
   }
 
   if (tabId === 'monthly-tab' || tabId === 'analytics-tab') {
@@ -1762,8 +1773,130 @@ function setupUnlockWeekModal() {
 }
 
 /**
- * 13. Export Actions
+ * 13. Export Actions (Dynamic Context-Aware for Weekly and Monthly Book)
  */
+function updateExportDropdown() {
+  const exportMenu = document.getElementById('export-menu');
+  const exportDropBtn = document.getElementById('export-dropdown-btn');
+  if (!exportMenu) return;
+
+  const activeWeek = CampusState.getActiveWeek();
+  const weekLabel = activeWeek ? (activeWeek.label || activeWeek.id) : 'Active Week';
+  const activeWeekInfo = (typeof getWeekDateInfo === 'function' && activeWeek)
+    ? getWeekDateInfo(activeWeek.id)
+    : { monthId: '2026-08', monthLabel: 'August 2026' };
+
+  const activeWeekMonthId = activeWeekInfo.monthId;
+  const activeWeekMonthSummary = CampusCalculator.getMonthlySummary(CampusState.state, activeWeekMonthId);
+  const activeWeekMonthLabel = activeWeekMonthSummary.monthLabel || activeWeekInfo.monthLabel;
+
+  if (!selectedMonthlyBookMonth) {
+    selectedMonthlyBookMonth = activeWeekMonthId;
+  }
+
+  const monthlyBookSummary = CampusCalculator.getMonthlySummary(CampusState.state, selectedMonthlyBookMonth);
+  const monthlyBookLabel = monthlyBookSummary.monthLabel || selectedMonthlyBookMonth;
+
+  if (currentActiveTab === 'monthly-tab') {
+    if (exportDropBtn) exportDropBtn.title = `Export Monthly Statement (${monthlyBookLabel})`;
+
+    exportMenu.innerHTML = `
+      <div class="dropdown-header-tag">Monthly Book – ${monthlyBookLabel}</div>
+      <button id="export-pdf-btn" class="dropdown-item dropdown-item-primary" title="Export ${monthlyBookLabel} Consolidated Table & All Weeks as PDF">
+        <i data-lucide="file-text"></i>
+        <span>Export <strong>${monthlyBookLabel}</strong> as PDF</span>
+      </button>
+      <button id="export-csv-btn" class="dropdown-item" title="Export ${monthlyBookLabel} Consolidated Ledger as CSV">
+        <i data-lucide="file-spreadsheet"></i>
+        <span>Export <strong>${monthlyBookLabel}</strong> as CSV</span>
+      </button>
+      <div class="dropdown-divider"></div>
+      <button id="export-active-week-pdf-btn" class="dropdown-item" title="Export Active Week as PDF">
+        <i data-lucide="calendar"></i>
+        <span>Export Active Week as PDF</span>
+      </button>
+      <button id="print-view-btn" class="dropdown-item" title="Print Statement">
+        <i data-lucide="printer"></i>
+        <span>Printable Statement</span>
+      </button>
+    `;
+  } else {
+    if (exportDropBtn) exportDropBtn.title = `Export Weekly Statement (${weekLabel})`;
+
+    exportMenu.innerHTML = `
+      <div class="dropdown-header-tag">Weekly Planner – ${weekLabel}</div>
+      <button id="export-pdf-btn" class="dropdown-item dropdown-item-primary" title="Export ${weekLabel} as PDF">
+        <i data-lucide="file-text"></i>
+        <span>Export Week as PDF</span>
+      </button>
+      <button id="export-csv-btn" class="dropdown-item" title="Export ${weekLabel} as CSV">
+        <i data-lucide="file-spreadsheet"></i>
+        <span>Export Week as CSV</span>
+      </button>
+      <div class="dropdown-divider"></div>
+      <button id="export-monthly-full-pdf-btn" class="dropdown-item" title="Export Full Month (${activeWeekMonthLabel}) as PDF">
+        <i data-lucide="book-open"></i>
+        <span>Export Month as PDF (<strong>${activeWeekMonthLabel}</strong>)</span>
+      </button>
+      <button id="print-view-btn" class="dropdown-item" title="Print Statement">
+        <i data-lucide="printer"></i>
+        <span>Printable Statement</span>
+      </button>
+    `;
+  }
+
+  // Re-bind click listeners for dynamically rendered items
+  const pdfBtn = exportMenu.querySelector('#export-pdf-btn');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', () => {
+      exportMenu.classList.add('hidden');
+      if (currentActiveTab === 'monthly-tab') {
+        CampusExport.exportMonthlyPDF(selectedMonthlyBookMonth);
+      } else {
+        CampusExport.exportWeeklyPDF(CampusState.getActiveWeek());
+      }
+    });
+  }
+
+  const csvBtn = exportMenu.querySelector('#export-csv-btn');
+  if (csvBtn) {
+    csvBtn.addEventListener('click', () => {
+      exportMenu.classList.add('hidden');
+      if (currentActiveTab === 'monthly-tab') {
+        CampusExport.exportMonthlyCSV(selectedMonthlyBookMonth);
+      } else {
+        CampusExport.exportWeeklyCSV(CampusState.getActiveWeek());
+      }
+    });
+  }
+
+  const activeWeekPdfBtn = exportMenu.querySelector('#export-active-week-pdf-btn');
+  if (activeWeekPdfBtn) {
+    activeWeekPdfBtn.addEventListener('click', () => {
+      exportMenu.classList.add('hidden');
+      CampusExport.exportWeeklyPDF(CampusState.getActiveWeek());
+    });
+  }
+
+  const monthlyFullPdfBtn = exportMenu.querySelector('#export-monthly-full-pdf-btn');
+  if (monthlyFullPdfBtn) {
+    monthlyFullPdfBtn.addEventListener('click', () => {
+      exportMenu.classList.add('hidden');
+      CampusExport.exportMonthlyPDF(activeWeekMonthId);
+    });
+  }
+
+  const printBtn = exportMenu.querySelector('#print-view-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      exportMenu.classList.add('hidden');
+      window.print();
+    });
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
 function setupExportActions() {
   const exportDropBtn = document.getElementById('export-dropdown-btn');
   const exportMenu = document.getElementById('export-menu');
@@ -1771,6 +1904,7 @@ function setupExportActions() {
   if (exportDropBtn && exportMenu) {
     exportDropBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      updateExportDropdown();
       exportMenu.classList.toggle('hidden');
     });
 
@@ -1779,26 +1913,15 @@ function setupExportActions() {
     });
   }
 
-  const exportCsvBtn = document.getElementById('export-csv-btn');
-  if (exportCsvBtn) {
-    exportCsvBtn.addEventListener('click', () => {
-      CampusExport.exportWeeklyCSV(CampusState.getActiveWeek());
+  // Monthly Book Header Quick Export Button
+  const monthlyHeaderExportBtn = document.getElementById('export-monthly-header-btn');
+  if (monthlyHeaderExportBtn) {
+    monthlyHeaderExportBtn.addEventListener('click', () => {
+      CampusExport.exportMonthlyPDF(selectedMonthlyBookMonth);
     });
   }
 
-  const exportPdfBtn = document.getElementById('export-pdf-btn');
-  if (exportPdfBtn) {
-    exportPdfBtn.addEventListener('click', () => {
-      CampusExport.exportWeeklyPDF(CampusState.getActiveWeek());
-    });
-  }
-
-  const printViewBtn = document.getElementById('print-view-btn');
-  if (printViewBtn) {
-    printViewBtn.addEventListener('click', () => {
-      window.print();
-    });
-  }
+  updateExportDropdown();
 }
 
 /**
@@ -2168,6 +2291,11 @@ function selectCalendarMonth(monthId) {
   // Render monthly book and chart
   renderMonthlyBook(CampusState.state, CampusState.getCurrency());
   CampusCharts.renderMonthlyCategoryChart(CampusState.state, selectedMonthlyBookMonth);
+
+  // Update export dropdown menu to match selected month
+  if (typeof updateExportDropdown === 'function') {
+    updateExportDropdown();
+  }
 
   // Close popover
   const popover = document.getElementById('google-cal-month-popover');

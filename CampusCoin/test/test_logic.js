@@ -26,11 +26,18 @@ eval(fs.readFileSync(path.join(__dirname, '../js/supabase.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/state.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/calculator.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, '../js/insights.js'), 'utf8'));
+global.CampusNotifications = { showToast: () => {}, playChime: () => {} };
+global.document = {
+  createElement: (tag) => ({ setAttribute: () => {}, click: () => {}, style: {} }),
+  body: { appendChild: () => {}, removeChild: () => {} }
+};
+eval(fs.readFileSync(path.join(__dirname, '../js/export.js'), 'utf8'));
 
 global.CampusSupabase = window.CampusSupabase || global.CampusSupabase;
 global.CampusState = window.CampusState || global.CampusState;
 global.CampusCalculator = window.CampusCalculator;
 global.CampusInsights = window.CampusInsights;
+global.CampusExport = window.CampusExport || global.CampusExport;
 global.CATEGORIES = [
   { id: 'food', name: 'Food', emoji: '🍛', defaultPct: 0.24 },
   { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 }
@@ -232,4 +239,68 @@ const calcLive = CampusCalculator.getLiveCashBalance(CampusState.state);
 console.assert(calcLive.liveBalance === balBefore, 'CampusCalculator.getLiveCashBalance matches StateManager');
 console.log(`✓ CampusCalculator.getLiveCashBalance verified: Inflows = ₹${calcLive.totalInflow}, Outflows = ₹${calcLive.totalOutflow}, Live Balance = ₹${calcLive.liveBalance}`);
 
+// Test 12: Monthly Book Export Functionality (PDF & CSV Generation)
+console.log('\nTest 12: Monthly Book Export Functionality (PDF & CSV)');
+console.assert(typeof CampusExport.exportMonthlyPDF === 'function', 'CampusExport.exportMonthlyPDF should be a function');
+console.assert(typeof CampusExport.exportMonthlyCSV === 'function', 'CampusExport.exportMonthlyCSV should be a function');
+
+// Test exportMonthlyCSV generation for August 2026
+let downloadedFileName = '';
+let downloadedContent = '';
+global.document.createElement = (tag) => ({
+  setAttribute: (attr, val) => {
+    if (attr === 'download') downloadedFileName = val;
+    if (attr === 'href') downloadedContent = decodeURI(val);
+  },
+  click: () => {},
+  style: {}
+});
+
+CampusExport.exportMonthlyCSV('2026-08', CampusState.state);
+console.assert(downloadedFileName === 'campuscoin_2026-08_monthly_statement.csv', `Expected filename campuscoin_2026-08_monthly_statement.csv, got ${downloadedFileName}`);
+console.assert(downloadedContent.includes('CampusCoin - Monthly Financial Statement'), 'CSV contains Monthly statement title');
+console.assert(downloadedContent.includes('August 2026'), 'CSV contains August 2026 label');
+console.assert(downloadedContent.includes('Monthly Weeks Macro Summary'), 'CSV contains macro table');
+console.log(`✓ Monthly Book CSV Export verified for August 2026: generated ${downloadedFileName}`);
+
+// Test exportMonthlyPDF execution with mock jsPDF
+let pdfPages = 1;
+let pdfTexts = [];
+global.window.jspdf = {
+  jsPDF: function() {
+    return {
+      setFillColor: () => {},
+      rect: () => {},
+      roundedRect: () => {},
+      setTextColor: () => {},
+      setFontSize: () => {},
+      setFont: () => {},
+      text: (str, x, y) => { pdfTexts.push(str); },
+      addPage: () => { pdfPages++; },
+      setPage: (p) => {},
+      internal: { getNumberOfPages: () => pdfPages },
+      save: (name) => { downloadedFileName = name; }
+    };
+  }
+};
+
+CampusExport.exportMonthlyPDF('2026-08', CampusState.state);
+console.assert(downloadedFileName === 'campuscoin_2026-08_monthly_statement.pdf', `Expected filename campuscoin_2026-08_monthly_statement.pdf, got ${downloadedFileName}`);
+console.assert(pdfTexts.some(t => String(t).includes('Monthly Financial Statement • August 2026')), 'PDF contains title with August 2026');
+console.assert(pdfTexts.some(t => String(t).includes('TOTAL ALLOTTED')), 'PDF contains TOTAL ALLOTTED KPI');
+console.assert(pdfTexts.some(t => String(t).includes('TOTAL SPENT')), 'PDF contains TOTAL SPENT KPI');
+console.assert(pdfTexts.some(t => String(t).includes('NET SAVINGS')), 'PDF contains NET SAVINGS KPI');
+console.assert(pdfTexts.some(t => String(t).includes('Monthly Book – 4-Week Macro Ledger')), 'PDF contains Macro Ledger Table');
+console.log(`✓ Monthly Book PDF Export verified for August 2026: generated ${downloadedFileName} (${pdfPages} page(s)) with KPI cards, 4-week table, and itemized ledgers`);
+
+// Dynamic September 2026 PDF export test
+pdfTexts = [];
+pdfPages = 1;
+CampusExport.exportMonthlyPDF('2026-09', CampusState.state);
+console.assert(downloadedFileName === 'campuscoin_2026-09_monthly_statement.pdf', `Expected filename campuscoin_2026-09_monthly_statement.pdf, got ${downloadedFileName}`);
+console.assert(pdfTexts.some(t => String(t).includes('Monthly Financial Statement • September 2026')), 'PDF contains title with September 2026');
+console.log(`✓ Monthly Book PDF Export dynamically switched to September 2026: generated ${downloadedFileName} (${pdfPages} page(s))`);
+
 console.log('\n=== ALL V7.0 SUPABASE, ZERO-SUM & LIVE BALANCE TESTS PASSED SUCCESSFULLY! ===');
+
+
