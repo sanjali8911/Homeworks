@@ -372,6 +372,36 @@ const CampusCalculator = {
       categoryTotals,
       weekRows
     };
+  },
+
+  /**
+   * Computes all-time expenses across all weeks
+   */
+  getAllTimeExpenses(state) {
+    if (!state || !state.weeks) return 0;
+    let total = 0;
+    Object.values(state.weeks).forEach(w => {
+      if (!w) return;
+      total += this.getGrandTotalSpent(w);
+    });
+    return parseFloat(total.toFixed(2));
+  },
+
+  /**
+   * Live Cash Balance calculation helper
+   */
+  getLiveCashBalance(state) {
+    const incomeSources = (state && Array.isArray(state.incomeSources)) ? state.incomeSources : [];
+    const totalInflow = incomeSources.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+    const totalOutflow = this.getAllTimeExpenses(state);
+    const liveBalance = totalInflow - totalOutflow;
+
+    return {
+      totalInflow: parseFloat(totalInflow.toFixed(2)),
+      totalOutflow: parseFloat(totalOutflow.toFixed(2)),
+      liveBalance: parseFloat(liveBalance.toFixed(2)),
+      incomeCount: incomeSources.length
+    };
   }
 };
 

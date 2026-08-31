@@ -42,6 +42,7 @@ function initApp() {
   setupModals();
   setupExportActions();
   setupSettingsActions();
+  setupLiveBalanceWidget();
   setupTodoWidget();
   setupCampusAIDrawer();
   setupCalendarPopover();
@@ -128,6 +129,7 @@ function renderAll() {
   // 3. Right Sidebar Widgets
   renderSafeToSpendWidget(week, currency);
   renderBudgetVelocityMeter(week, currency);
+  renderLiveBalanceCapsule();
   renderTodoList();
 
   // 4. Main Weekly Table with Live Balance Row & Collapsible Columns (Clothes, Recreation, Other)
@@ -739,6 +741,191 @@ function setupBorrowingModal() {
       pendingBorrowing = null;
     });
   }
+}
+
+/**
+ * 6.1 Live Balance Capsule Widget & Income Inflow Handlers
+ */
+function renderLiveBalanceCapsule() {
+  const currency = CampusState.getCurrency();
+  const details = CampusState.getLiveBalanceDetails();
+
+  const balanceValEl = document.getElementById('capsule-live-balance-val');
+  const inflowValEl = document.getElementById('capsule-total-inflow');
+  const spentValEl = document.getElementById('capsule-total-spent');
+  const modalInflowCount = document.getElementById('modal-inflow-count');
+
+  if (balanceValEl) {
+    balanceValEl.textContent = `${Math.round(details.liveBalance).toLocaleString()}`;
+    if (details.liveBalance < 0) {
+      balanceValEl.classList.add('negative');
+    } else {
+      balanceValEl.classList.remove('negative');
+    }
+  }
+
+  if (inflowValEl) {
+    inflowValEl.textContent = `+${currency}${Math.round(details.totalIncome).toLocaleString()}`;
+  }
+
+  if (spentValEl) {
+    spentValEl.textContent = `-${currency}${Math.round(details.totalExpenses).toLocaleString()}`;
+  }
+
+  if (modalInflowCount) {
+    modalInflowCount.textContent = `${details.incomeList.length}`;
+  }
+
+  renderIncomeHistoryList();
+}
+
+function setupLiveBalanceWidget() {
+  const addMoneyBtn = document.getElementById('capsule-add-money-btn');
+  const historyBtn = document.getElementById('capsule-history-btn');
+
+  if (addMoneyBtn) {
+    addMoneyBtn.addEventListener('click', () => {
+      openIncomeModal('add');
+    });
+  }
+
+  if (historyBtn) {
+    historyBtn.addEventListener('click', () => {
+      openIncomeModal('history');
+    });
+  }
+
+  setupIncomeModal();
+}
+
+function openIncomeModal(defaultTab = 'add') {
+  const modal = document.getElementById('add-income-modal');
+  if (!modal) return;
+
+  const dateInput = document.getElementById('income-date-input');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  switchIncomeTab(defaultTab);
+  modal.classList.remove('hidden');
+
+  if (defaultTab === 'add') {
+    setTimeout(() => {
+      const amtInput = document.getElementById('income-amount-input');
+      if (amtInput) amtInput.focus();
+    }, 100);
+  }
+}
+
+function switchIncomeTab(tabName) {
+  const addTabBtn = document.getElementById('tab-add-income-btn');
+  const historyTabBtn = document.getElementById('tab-view-inflows-btn');
+  const formPane = document.getElementById('income-form-pane');
+  const historyPane = document.getElementById('income-history-pane');
+
+  if (tabName === 'add') {
+    if (addTabBtn) addTabBtn.classList.add('active');
+    if (historyTabBtn) historyTabBtn.classList.remove('active');
+    if (formPane) formPane.classList.remove('hidden');
+    if (historyPane) historyPane.classList.add('hidden');
+  } else {
+    if (addTabBtn) addTabBtn.classList.remove('active');
+    if (historyTabBtn) historyTabBtn.classList.add('active');
+    if (formPane) formPane.classList.add('hidden');
+    if (historyPane) historyPane.classList.remove('hidden');
+    renderIncomeHistoryList();
+  }
+}
+
+function setupIncomeModal() {
+  const addTabBtn = document.getElementById('tab-add-income-btn');
+  const historyTabBtn = document.getElementById('tab-view-inflows-btn');
+  const form = document.getElementById('add-income-form');
+
+  if (addTabBtn) {
+    addTabBtn.addEventListener('click', () => switchIncomeTab('add'));
+  }
+  if (historyTabBtn) {
+    historyTabBtn.addEventListener('click', () => switchIncomeTab('history'));
+  }
+
+  // Quick Preset Chips
+  document.querySelectorAll('.preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const amt = chip.getAttribute('data-amt');
+      const amtInput = document.getElementById('income-amount-input');
+      if (amtInput && amt) {
+        amtInput.value = amt;
+        amtInput.focus();
+      }
+    });
+  });
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const amtInput = document.getElementById('income-amount-input');
+      const sourceInput = document.getElementById('income-source-input');
+      const dateInput = document.getElementById('income-date-input');
+
+      const amount = parseFloat(amtInput ? amtInput.value : 0);
+      const source = sourceInput ? sourceInput.value.trim() : '';
+      const date = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+
+      if (amount > 0 && source) {
+        CampusState.addIncome(source, amount, date);
+        CampusNotifications.showToast(`+${CampusState.getCurrency()}${amount.toLocaleString()} added from ${source}!`, 'success');
+        CampusNotifications.playChime('coin');
+
+        if (amtInput) amtInput.value = '';
+        if (sourceInput) sourceInput.value = '';
+
+        closeModal('add-income-modal');
+        renderAll();
+      }
+    });
+  }
+}
+
+function renderIncomeHistoryList() {
+  const container = document.getElementById('modal-income-history-list');
+  if (!container) return;
+
+  const currency = CampusState.getCurrency();
+  const incomeList = CampusState.state.incomeSources || [];
+
+  if (incomeList.length === 0) {
+    container.innerHTML = `<p class="income-empty-hint">No inflow funds added yet. Use the "Add Money" tab to record money received from parents, stipend, or freelance.</p>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  incomeList.forEach(inc => {
+    const row = document.createElement('div');
+    row.className = 'income-history-row';
+    row.innerHTML = `
+      <div class="income-history-info">
+        <span class="income-history-source">${inc.source}</span>
+        <span class="income-history-date">${inc.date || 'Today'}</span>
+      </div>
+      <div class="income-history-right">
+        <span class="income-history-amount">+${currency}${parseFloat(inc.amount).toLocaleString()}</span>
+        <button type="button" class="income-del-btn" data-id="${inc.id}" title="Delete this inflow record">&times;</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('.income-del-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      CampusState.deleteIncome(id);
+      renderAll();
+      CampusNotifications.showToast('Inflow record deleted', 'info');
+    });
+  });
 }
 
 /**

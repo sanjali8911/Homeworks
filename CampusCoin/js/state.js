@@ -365,6 +365,11 @@ function getSampleState(refDate = new Date()) {
     weeksState[nextWeekId] = createEmptyWeek(nextWeekId, nextInfo.fullLabel, nextInfo.startDate, defaultCash);
   }
 
+  // Sample Inflows / Received Money with dynamic dates
+  const sampleIncome = [
+    { id: 'inc-1', source: 'Monthly Allowance from Parents', amount: 10000, date: todayIso, timestamp: new Date().toISOString() }
+  ];
+
   const allMonthWeekIds = monthWeeks.map(w => w.weekId);
 
   return {
@@ -372,6 +377,7 @@ function getSampleState(refDate = new Date()) {
     activeWeekId: currentWeekId,
     weeks: weeksState,
     todos: sampleTodos,
+    incomeSources: sampleIncome,
     settings: {
       currency: '₹',
       defaultStartingCash: defaultCash,
@@ -532,6 +538,11 @@ class StateManager {
     if (!this.state.settings.currency) this.state.settings.currency = '₹';
     if (!this.state.settings.unlockPasscode) this.state.settings.unlockPasscode = '1234';
     if (!this.state.todos) this.state.todos = [];
+    if (!this.state.incomeSources) {
+      this.state.incomeSources = [
+        { id: 'inc-default', source: 'Initial Pocket Money / Allowance', amount: 10000, date: new Date().toISOString().split('T')[0], timestamp: new Date().toISOString() }
+      ];
+    }
     if (!this.state.monthlyArchives) this.state.monthlyArchives = [];
 
     // Ensure all weeks have exact Sunday-to-Saturday date ranges in their labels and startDates
@@ -820,6 +831,102 @@ class StateManager {
     this.saveToSupabase(this.state);
   }
 
+  /* ================= INFLOW & LIVE BALANCE MANAGEMENT ================= */
+
+  /**
+   * Adds an income/funds deposit to state.incomeSources
+   */
+  addIncome(source, amount, date) {
+    if (!this.state.incomeSources) this.state.incomeSources = [];
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return null;
+
+    const newIncome = {
+      id: 'inc-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      source: (source || '').trim() || 'Received Funds',
+      amount: val,
+      date: date || new Date().toISOString().split('T')[0],
+      timestamp: new Date().toISOString()
+    };
+
+    this.state.incomeSources.unshift(newIncome);
+    this.saveToSupabase(this.state);
+    return newIncome;
+  }
+
+  /**
+   * Deletes an income deposit by ID
+   */
+  deleteIncome(id) {
+    if (!this.state.incomeSources) return;
+    this.state.incomeSources = this.state.incomeSources.filter(i => i.id !== id);
+    this.saveToSupabase(this.state);
+  }
+
+  /**
+   * Calculates total income received across all sources
+   */
+  getTotalIncome() {
+    const sources = this.state.incomeSources || [];
+    const total = sources.reduce((acc, inc) => acc + (parseFloat(inc.amount) || 0), 0);
+    return parseFloat(total.toFixed(2));
+  }
+
+  /**
+   * Calculates total expenses across all categories and surprise expenses across all recorded weeks
+   */
+  getTotalExpensesAllTime() {
+    let total = 0;
+    const weeks = this.state.weeks || {};
+    Object.values(weeks).forEach(week => {
+      if (!week) return;
+      if (week.dailySpends) {
+        for (let d = 0; d < 7; d++) {
+          const day = week.dailySpends[d];
+          if (day) {
+            CATEGORIES.forEach(cat => {
+              const cell = day[cat.id];
+              if (cell && Array.isArray(cell.items)) {
+                total += cell.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0);
+              } else if (cell && cell.amount) {
+                total += parseFloat(cell.amount) || 0;
+              }
+            });
+          }
+        }
+      }
+      if (Array.isArray(week.surprises)) {
+        total += week.surprises.reduce((acc, s) => acc + (parseFloat(s.amount) || 0), 0);
+      }
+    });
+    return parseFloat(total.toFixed(2));
+  }
+
+  /**
+   * Live Cash Balance: Total Inflows (Deposits) - Total Expenses across all categories & surprises
+   */
+  getLiveBalance() {
+    const totalIncome = this.getTotalIncome();
+    const totalExpenses = this.getTotalExpensesAllTime();
+    return parseFloat((totalIncome - totalExpenses).toFixed(2));
+  }
+
+  /**
+   * Detailed breakdown for Live Balance capsule
+   */
+  getLiveBalanceDetails() {
+    const totalIncome = this.getTotalIncome();
+    const totalExpenses = this.getTotalExpensesAllTime();
+    const liveBalance = parseFloat((totalIncome - totalExpenses).toFixed(2));
+    const incomeList = this.state.incomeSources || [];
+    return {
+      liveBalance,
+      totalIncome,
+      totalExpenses,
+      incomeList
+    };
+  }
+
   resetCurrentWeek() {
     const currentId = this.state.activeWeekId;
     const currentBal = this.getActiveWeek().startingBalance || 7500;
@@ -879,6 +986,7 @@ class StateManager {
       activeWeekId: currentWeekId,
       weeks: {},
       todos: [],
+      incomeSources: [],
       settings: {
         currency: '₹',
         reminderTime: '21:00',

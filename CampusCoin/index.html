@@ -689,22 +689,41 @@
           </div>
         </div>
 
-        <!-- 3. Quick To-Do Widget on Right Sidebar -->
-        <div class="widget-card todo-widget">
-          <div class="widget-header">
-            <div class="widget-title-group">
-              <i data-lucide="check-square" class="widget-icon text-green"></i>
-              <span class="widget-title">Today's Quick Tasks</span>
+        <!-- 3. Live Balance Capsule Widget on Right Sidebar -->
+        <div class="live-balance-capsule-widget">
+          <div class="capsule-header">
+            <div class="capsule-title-wrap">
+              <span class="capsule-live-dot" title="Real-time live synchronization"></span>
+              <span class="capsule-label">Live Cash Balance</span>
             </div>
-            <button class="btn-ghost-sm" id="widget-view-all-todos" title="View all in full tab">View All</button>
+            <button type="button" id="capsule-add-money-btn" class="capsule-plus-btn" title="Add Money / Received Funds">
+              <i data-lucide="plus"></i>
+            </button>
           </div>
 
-          <form id="todo-add-form" class="todo-input-form">
-            <input type="text" id="todo-text-input" class="todo-input" placeholder="+ Add task..." required />
-            <button type="submit" class="btn-icon-todo" title="Add task"><i data-lucide="plus"></i></button>
-          </form>
+          <div class="capsule-body">
+            <div class="capsule-balance-row">
+              <div class="capsule-amount-group">
+                <span class="capsule-curr-symbol">₹</span>
+                <span id="capsule-live-balance-val" class="capsule-balance-value">0</span>
+              </div>
+              <button type="button" id="capsule-history-btn" class="capsule-history-chip" title="View Inflow History">
+                <i data-lucide="history"></i> Inflows
+              </button>
+            </div>
 
-          <div class="todo-list-stream" id="todo-items-list"></div>
+            <div class="capsule-stats-bar">
+              <div class="capsule-stat-item" title="Total funds received from all sources">
+                <span class="capsule-stat-lbl"><i data-lucide="arrow-down-left" class="stat-icon-green"></i> Inflows:</span>
+                <strong id="capsule-total-inflow" class="capsule-stat-val text-green">+₹0</strong>
+              </div>
+              <div class="capsule-stat-divider"></div>
+              <div class="capsule-stat-item" title="Total expenses deducted across all categories">
+                <span class="capsule-stat-lbl"><i data-lucide="arrow-up-right" class="stat-icon-red"></i> Outflows:</span>
+                <strong id="capsule-total-spent" class="capsule-stat-val text-red">-₹0</strong>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -931,6 +950,78 @@
           <button type="submit" class="btn-primary-pill">Save to Cell</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 1.1 Add Income / Funds to Live Balance Modal -->
+  <div id="add-income-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="wallet" class="modal-icon text-green"></i>
+          <h3>Live Balance & Inflow Funds</h3>
+        </div>
+        <button class="modal-close-btn" data-modal="add-income-modal">&times;</button>
+      </div>
+
+      <div class="income-modal-tabs">
+        <button type="button" class="income-tab-btn active" id="tab-add-income-btn">
+          <i data-lucide="plus-circle"></i> Add Money
+        </button>
+        <button type="button" class="income-tab-btn" id="tab-view-inflows-btn">
+          <i data-lucide="list"></i> Inflow History (<span id="modal-inflow-count">0</span>)
+        </button>
+      </div>
+
+      <!-- Tab 1: Add Money Form -->
+      <div id="income-form-pane" class="income-tab-pane active">
+        <form id="add-income-form" class="modal-form">
+          <p class="modal-help-box text-green-box">
+            Funds added here increase your <strong>Live Cash Balance</strong> in real-time. Every expense logged in any category automatically deduces from this balance.
+          </p>
+
+          <div class="form-group">
+            <label for="income-amount-input">Amount to Add (₹)</label>
+            <div class="input-currency-wrapper">
+              <span class="curr-prefix">₹</span>
+              <input type="number" id="income-amount-input" placeholder="0" min="1" step="any" required />
+            </div>
+            <!-- Quick Preset Chips -->
+            <div class="income-preset-chips">
+              <button type="button" class="preset-chip" data-amt="500">+₹500</button>
+              <button type="button" class="preset-chip" data-amt="1000">+₹1,000</button>
+              <button type="button" class="preset-chip" data-amt="2000">+₹2,000</button>
+              <button type="button" class="preset-chip" data-amt="5000">+₹5,000</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="income-source-input">Source / Description</label>
+            <input type="text" id="income-source-input" class="form-input" placeholder="e.g. Received from Dad, Stipend, Freelance, UPI..." required />
+          </div>
+
+          <div class="form-group">
+            <label for="income-date-input">Date Received</label>
+            <input type="date" id="income-date-input" class="form-input" required />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-subtle" data-modal="add-income-modal">Cancel</button>
+            <button type="submit" class="btn-primary-pill btn-green-pill">
+              <i data-lucide="plus"></i> Add to Live Balance
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 2: Inflow History List -->
+      <div id="income-history-pane" class="income-tab-pane hidden">
+        <div class="income-history-list" id="modal-income-history-list"></div>
+        <div class="modal-actions" style="margin-top: 1rem;">
+          <button type="button" class="btn-subtle" data-modal="add-income-modal">Close</button>
+        </div>
+      </div>
+
     </div>
   </div>
 

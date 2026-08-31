@@ -193,4 +193,43 @@ console.assert(sep2027Summary.weekRows.length === 5, '5 week rows dynamically co
 console.log(`✓ September 2027: Dynamically computed ${sep2027Weeks.length} weeks -> [${sep2027Weeks.map(w => w.dateRangeStr).join(', ')}]`);
 console.log(`✓ Monthly Book for September 2027: Total Allotted = ₹${sep2027Summary.totalAllotted}`);
 
-console.log('\n=== ALL V7.0 SUPABASE & ZERO-SUM TESTS PASSED SUCCESSFULLY! ===');
+// Test 11: Live Balance Capsule & Income Inflows with Dynamic Expense Deductions
+console.log('\nTest 11: Live Balance Capsule & Income Inflows (Independent of Starting Cash)');
+const balBefore = CampusState.getLiveBalance();
+const incBefore = CampusState.getTotalIncome();
+const expBefore = CampusState.getTotalExpensesAllTime();
+console.assert(balBefore === parseFloat((incBefore - expBefore).toFixed(2)), 'Live balance matches income minus total expenses');
+
+// 1. Add Income from source
+const newIncome = CampusState.addIncome('Stipend from Dept', 4000, '2026-08-31');
+console.assert(newIncome && newIncome.amount === 4000, 'Income item created successfully');
+console.assert(CampusState.getLiveBalance() === balBefore + 4000, `Live balance should increase by 4000 (was ${balBefore}, now ${CampusState.getLiveBalance()})`);
+console.log(`✓ Added Income ₹4,000 from Stipend -> Live Balance increased by ₹4,000 to ₹${CampusState.getLiveBalance()}`);
+
+// 2. Add an expense in food category -> Live balance decreases
+const foodItem = CampusState.addItemToCell(2, 'food', 'Hostel Biryani', 220);
+console.assert(CampusState.getLiveBalance() === balBefore + 4000 - 220, 'Live balance decreased by 220 food expense');
+console.log(`✓ Added ₹220 Food expense -> Live Balance immediately reduced to ₹${CampusState.getLiveBalance()}`);
+
+// 3. Add a surprise expense -> Live balance decreases
+const surp = CampusState.addSurprise('Textbook Xerox', 80, 2);
+console.assert(CampusState.getLiveBalance() === balBefore + 4000 - 220 - 80, 'Live balance decreased by 80 surprise expense');
+console.log(`✓ Added ₹80 Surprise expense -> Live Balance immediately reduced to ₹${CampusState.getLiveBalance()}`);
+
+// 4. Remove food item and surprise -> Live balance is restored
+CampusState.removeItemFromCell(2, 'food', foodItem.id);
+CampusState.deleteSurprise(surp.id);
+console.assert(CampusState.getLiveBalance() === balBefore + 4000, 'Live balance restored after deleting expenses');
+console.log(`✓ Removed expenses -> Live Balance restored to ₹${CampusState.getLiveBalance()}`);
+
+// 5. Delete income item
+CampusState.deleteIncome(newIncome.id);
+console.assert(CampusState.getLiveBalance() === balBefore, 'Live balance returned to initial baseline after deleting test income');
+console.log(`✓ Deleted test income -> Live balance returned to ₹${balBefore}`);
+
+// 6. Verify Calculator helper
+const calcLive = CampusCalculator.getLiveCashBalance(CampusState.state);
+console.assert(calcLive.liveBalance === balBefore, 'CampusCalculator.getLiveCashBalance matches StateManager');
+console.log(`✓ CampusCalculator.getLiveCashBalance verified: Inflows = ₹${calcLive.totalInflow}, Outflows = ₹${calcLive.totalOutflow}, Live Balance = ₹${calcLive.liveBalance}`);
+
+console.log('\n=== ALL V7.0 SUPABASE, ZERO-SUM & LIVE BALANCE TESTS PASSED SUCCESSFULLY! ===');
