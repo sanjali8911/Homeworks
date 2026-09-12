@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE HUNGER GAMES // Official Capitol Broadcast & Sponsorship Portal</title>
+  <meta name="description" content="Official Capitol broadcast portal, live arena surveillance, scoreboard, tributes telemetry, and interactive Quarter Quell clock arena simulator.">
+  
+  <!-- Google Fonts: Cinzel (Display Serif), Barlow Condensed (Broadcast Headers/Badges), Inter (Clean Sans-Serif Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles/main.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="capitol-portal-body">
+
+  <!-- DYNAMIC FIRE EMBERS CANVAS (Subtle Atmospheric Background) -->
+  <canvas id="fire-embers-canvas" class="embers-background-canvas" aria-hidden="true"></canvas>
+
+  <!-- ======================================================== -->
+  <!-- MAIN PORTAL APPLICATION ROOT (Direct Viewport Content)   -->
+  <!-- ======================================================== -->
+  <div id="app-root" class="capitol-portal-wrapper">
+
+    <!-- ====================================================== -->
+    <!-- CAPITOL BROADCAST PORTAL HEADER (Matching Target Design)-->
+    <!-- ====================================================== -->
+    <header class="capitol-main-header">
+      <div class="header-inner-container">
+        <div class="header-branding-group">
+          <!-- Capitol Eagle Crest Seal -->
+          <div class="capitol-emblem-seal">
+            <svg viewBox="0 0 100 100" class="capitol-seal-svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#F0CC58"/>
+                  <stop offset="50%" stop-color="#D6AF3F"/>
+                  <stop offset="100%" stop-color="#8C6D1F"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="47" fill="none" stroke="url(#goldGrad)" stroke-width="2.5"/>
+              <circle cx="50" cy="50" r="41" fill="none" stroke="url(#goldGrad)" stroke-width="1" stroke-dasharray="3 3"/>
+              <!-- Capitol Wings & Starburst -->
+              <path d="M 50 14 L 56 32 L 78 30 L 62 44 L 68 68 L 50 54 L 32 68 L 38 44 L 22 30 L 44 32 Z" fill="url(#goldGrad)"/>
+              <circle cx="50" cy="50" r="14" fill="#07090D" stroke="url(#goldGrad)" stroke-width="2"/>
+              <polygon points="50,42 53,48 59,49 55,54 56,60 50,57 44,60 45,54 41,49 47,48" fill="url(#goldGrad)"/>
+            </svg>
+          </div>
+
+          <!-- Portal Main Typography -->
+          <div class="header-titles">
+            <div class="brand-line-wrap">
+              <h1 class="brand-title">THE<br>HUNGER<br>GAMES</h1>
+              <!-- Gold Mockingjay Crest Beside Title -->
+              <div class="brand-mockingjay-logo">
+                <svg viewBox="0 0 80 80" class="mockingjay-svg" aria-hidden="true">
+                  <circle cx="40" cy="40" r="36" fill="none" stroke="url(#goldGrad)" stroke-width="2.5"/>
+                  <path d="M 40 10 Q 46 26 64 24 Q 50 36 68 50 Q 52 48 40 68 Q 36 50 16 46 Q 32 36 20 22 Q 36 28 40 10 Z" fill="url(#goldGrad)"/>
+                  <circle cx="40" cy="38" r="4" fill="#07090D"/>
+                </svg>
+              </div>
+            </div>
+            <div class="brand-tagline">THE OFFICIAL CAPITOL BROADCAST AND SPONSORSHIP PORTAL</div>
+          </div>
+        </div>
+
+        <!-- Main Navigation Menu (Matching Screenshot 1) -->
+        <nav class="portal-nav-bar" role="navigation">
+          <button class="nav-link-btn active" id="nav-home" data-view="view-broadcast">HOME</button>
+          <button class="nav-link-btn" id="nav-tributes" data-view="view-tributes">TRIBUTES</button>
+          <button class="nav-link-btn" id="nav-districts" data-view="view-districts">DISTRICTS</button>
+          <button class="nav-link-btn arena-live-pill" id="nav-arena-live" data-view="view-arena">
+            ARENA LIVE <span class="nav-live-dot">●</span>
+          </button>
+          <button class="nav-link-btn" id="nav-sponsor" data-view="view-sponsor">SPONSOR</button>
+          <button class="nav-link-btn" id="nav-history" data-view="view-history">HISTORY</button>
+          <button class="nav-link-btn" id="nav-capitol-tv" data-view="view-tv">CAPITOL TV</button>
+
+          <!-- Capitol Citizen Login Button & Search Icon -->
+          <button class="capitol-login-btn">CAPITOL CITIZEN LOGIN</button>
+          <button class="portal-search-icon" title="Search Broadcast Portal">🔍</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Sub-Header Motto Ribbon (Thin Gold Divider) -->
+    <div class="portal-motto-ribbon">
+      <span class="motto-crest">🦅</span>
+      <span class="motto-text">MAY THE ODDS BE EVER IN YOUR FAVOR</span>
+      <span class="motto-crest">🦅</span>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 1: HOME BROADCAST PORTAL (MATCHING SCREENSHOT 1)  -->
+    <!-- ====================================================== -->
+    <main id="view-broadcast" class="portal-view-container active">
+
+      <!-- Hero Heading Banner with LIVE badge -->
+      <div class="broadcast-hero-banner">
+        <h2 class="hero-event-title">THE 74<sup>TH</sup> ANNUAL HUNGER GAMES</h2>
+        <span class="hero-live-badge"><span class="badge-pulse-dot">●</span> LIVE</span>
+      </div>
+
+      <!-- 4-COLUMN BROADCAST DASHBOARD GRID (Exact Layout from Screenshot 1) -->
+      <div class="broadcast-dashboard-grid">
+
+        <!-- ==================================================== -->
+        <!-- COLUMN 1: LIVE ARENA BROADCAST & FEATURED TRIBUTES    -->
+        <!-- ==================================================== -->
+        <div class="grid-col col-feed-featured">
+
+          <!-- 1. LIVE ARENA BROADCAST PANEL (YouTube Player Embed) -->
+          <div class="broadcast-window-box">
+            <div class="window-bar-top">
+              <div class="window-bar-left">
+                <span class="rec-dot-pulse">●</span>
+                <span class="bar-title-text">LIVE ARENA BROADCAST</span>
+              </div>
+              <div class="window-bar-controls">
+                <span class="ctrl-btn">—</span>
+                <span class="ctrl-btn">□</span>
+                <span class="ctrl-btn">✕</span>
+              </div>
+            </div>
+
+            <!-- Embedded Live YouTube Video Component -->
+            <div class="youtube-player-container" id="youtube-player-wrapper">
+              <iframe 
+                id="live-youtube-iframe"
+                class="youtube-iframe-element"
+                src="https://www.youtube-nocookie.com/embed/n-7K_OjsDCQ?autoplay=0&rel=0&modestbranding=1"
+                title="Hunger Games Capitol Live Arena Broadcast Feed"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen>
+              </iframe>
+
+              <!-- Fallback State (Awaiting Broadcast Signal) -->
+              <div class="youtube-fallback-card" id="youtube-fallback-state" style="display: none;">
+                <div class="fallback-radar-pulse"></div>
+                <div class="fallback-status-tag">SIGNAL STATUS: ENCRYPTED FEED</div>
+                <h3 class="fallback-title">AWAITING BROADCAST SIGNAL</h3>
+                <p class="fallback-desc">Surveillance feed from Panem Sector 75 stream relay is calibrating.</p>
+                <a href="https://youtu.be/n-7K_OjsDCQ" target="_blank" rel="noopener noreferrer" class="youtube-watch-link">
+                  ▶ WATCH ON YOUTUBE
+                </a>
+              </div>
+
+              <!-- HUD Surveillance Badges & Meta Around Frame -->
+              <div class="player-hud-meta-bar">
+                <span class="cam-id-pill"><span class="cam-green-dot">●</span> CAM 08: DRONE TRACKER ACTIVE</span>
+                <span class="stream-res-pill">FEED: 1080p // 60 FPS // ENCRYPTED</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. FEATURED TRIBUTES SECTION -->
+          <div class="featured-tributes-section">
+            <div class="featured-sec-header">
+              <h3 class="sec-title">FEATURED TRIBUTES</h3>
+              <a href="#" class="view-odds-link" id="link-view-odds">VIEW ODDS &gt;&gt;</a>
+            </div>
+
+            <div class="featured-cards-row">
+              <!-- Tribute 1: Cashmere (District 1) -->
+              <div class="featured-card">
+                <div class="tribute-photo-frame">
+                  <img src="assets/images/cashmere.png" class="feat-card-img" alt="Cashmere (District 1)" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 120%22><rect fill=%22%23121820%22 width=%22100%22 height=%22120%22/><text x=%2250%22 y=%2265%22 fill=%22%23d6af3f%22 text-anchor=%22middle%22 font-size=%2232%22>✨</text></svg>'">
+                </div>
+                <div class="tribute-details-col">
+                  <div class="feat-tribute-heading">DISTRICT 1 - Cashmere</div>
+                  <div class="feat-district-sub">DISTRICT 1</div>
+                  <div class="feat-name-sub">Cashmere (Female)</div>
+                  <div class="feat-odds-row">
+                    <span class="odds-label">ODDS</span>
+                    <span class="odds-number">93.30</span>
+                  </div>
+                  <button class="gold-sponsor-btn" data-tribute-id="d1-f" data-tribute-name="Cashmere">SPONSOR</button>
+                </div>
+              </div>
+
+              <!-- Tribute 2: Gloss (District 1) -->
+              <div class="featured-card">
+                <div class="tribute-photo-frame">
+                  <img src="assets/images/gloss.png" class="feat-card-img" alt="Gloss (District 1)" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 120%22><rect fill=%22%23121820%22 width=%22100%22 height=%22120%22/><text x=%2250%22 y=%2265%22 fill=%22%23d6af3f%22 text-anchor=%22middle%22 font-size=%2232%22>💎</text></svg>'">
+                </div>
+                <div class="tribute-details-col">
+                  <div class="feat-tribute-heading">DISTRICT 1 - Gloss</div>
+                  <div class="feat-district-sub">DISTRICT 1</div>
+                  <div class="feat-name-sub">Gloss (Male)</div>
+                  <div class="feat-odds-row">
+                    <span class="odds-label">ODDS</span>
+                    <span class="odds-number">88.50</span>
+                  </div>
+                  <button class="gold-sponsor-btn" data-tribute-id="d1-m" data-tribute-name="Gloss">SPONSOR</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================================================== -->
+        <!-- COLUMN 2: SCOREBOARD TABLE                           -->
+        <!-- ==================================================== -->
+        <div class="grid-col col-scoreboard">
+          <div class="capitol-panel-card scoreboard-box">
+            <div class="panel-card-title">SCOREBOARD</div>
+
+            <!-- Scoreboard Table (Matching Screenshot 1) -->
+            <div class="scoreboard-table-wrap">
+              <table class="capitol-table">
+                <thead>
+                  <tr>
+                    <th>RANK</th>
+                    <th>DISTRICT</th>
+                    <th>TRIBUTE</th>
+                  </tr>
+                </thead>
+                <tbody id="scoreboard-body">
+                  <tr>
+                    <td>1</td>
+                    <td>District 1</td>
+                    <td class="col-count">24</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>District 2</td>
+                    <td class="col-count">24</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>District 3</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>District 4</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>District 5</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>District 6</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>District 7</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>District 8</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                  <tr>
+                    <td>9</td>
+                    <td>District 9</td>
+                    <td class="col-count">0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Tributering Ratings Box (Matching Screenshot 1) -->
+            <div class="ratings-sub-box">
+              <div class="ratings-sub-title">TRIBUTERING RATINGS</div>
+              <div class="ratings-row">
+                <span class="rating-check">✓</span>
+                <span class="rating-name">Glimmer</span>
+                <span class="rating-val">18</span>
+              </div>
+              <div class="ratings-row">
+                <span class="rating-dash">-</span>
+                <span class="rating-name">Woof</span>
+                <span class="rating-val">1.8M</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================================================== -->
+        <!-- COLUMN 3: REMAINING TRIBUTES & PRESIDENTIAL ADDRESS  -->
+        <!-- ==================================================== -->
+        <div class="grid-col col-status-president">
+
+          <!-- 1. TRIBUTES REMAINING CARD -->
+          <div class="capitol-panel-card tributes-remaining-box">
+            <div class="panel-card-title">TRIBUTES REMAINING: <span id="portal-alive-count" class="gold-text">24 / 24</span></div>
+
+            <!-- Cybernetic District Tracker Progress Bar -->
+            <div class="cybernetic-tracker-section">
+              <div class="tracker-legend-row">
+                <span class="track-sub">CYBERNETIC DISTRICT TRACKER</span>
+                <span class="track-sub right">TRIBUTES REMAINING</span>
+              </div>
+              <div class="cyber-segmented-bar">
+                <div class="segment-fill" id="portal-tracker-fill" style="width: 100%;"></div>
+              </div>
+              <div class="tracker-ticks-row">
+                <span>21/50</span>
+                <span>30/80</span>
+                <span>11/20</span>
+              </div>
+            </div>
+
+            <!-- Capitol TV Broadcast Commentary Feed -->
+            <div class="broadcast-feed-box">
+              <div class="feed-heading">Capitol TV Broadcast Feed</div>
+              <div class="feed-lines-stream" id="portal-feed-stream">
+                <div class="feed-line">Capitol TV Broadcast Feed.</div>
+                <div class="feed-line">Surveillance drone grid synchronizing with Clock Matrix.</div>
+                <div class="feed-line highlight">Caesar Flickerman: "Unprecedented odds for the Victors!"</div>
+                <div class="feed-line">President Snow issues Quarter Quell proclamation.</div>
+                <div class="feed-line">Sponsorship parachute market open to Capitol citizens.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. PRESIDENTIAL ADDRESS CARD -->
+          <div class="capitol-panel-card president-address-box">
+            <div class="president-portrait-frame">
+              <div class="president-snow-visual">
+                <div class="snow-suit-silhouette">
+                  <div class="snow-head">
+                    <span class="snow-beard">🧔🏼‍♂️</span>
+                  </div>
+                  <div class="snow-rose">🌹</div>
+                </div>
+              </div>
+            </div>
+            <div class="president-caption-bar">
+              <div class="pres-addr-title">PRESIDENTIAL ADDRESS</div>
+              <div class="pres-addr-subtitle">PEACE THROUGH TRIUMPH</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================================================== -->
+        <!-- COLUMN 4: SPONSOR MARKET                             -->
+        <!-- ==================================================== -->
+        <div class="grid-col col-sponsor-market">
+          <div class="capitol-panel-card sponsor-market-box">
+            <div class="panel-card-title">SPONSOR MARKET</div>
+
+            <!-- Up Arrow Nav -->
+            <button class="market-scroll-nav nav-up" id="btn-market-up">∧</button>
+
+            <!-- Sponsor Buttons List (Exact Items from Screenshot 1) -->
+            <div class="sponsor-market-list" id="sponsor-market-items">
+              <button class="market-pill-btn" data-cost="300" data-type="medkit" data-name="Medicine">
+                <span class="pill-item-name">Medicine</span>
+                <span class="pill-item-cost">300 in Capitol Credits</span>
+              </button>
+
+              <button class="market-pill-btn" data-cost="250" data-type="food" data-name="Water">
+                <span class="pill-item-name">Water</span>
+                <span class="pill-item-cost">250 in Capitol Credits</span>
+              </button>
+
+              <button class="market-pill-btn" data-cost="250" data-type="food" data-name="Food Packet">
+                <span class="pill-item-name">Food Packet</span>
+                <span class="pill-item-cost">250 in Capitol Credits</span>
+              </button>
+
+              <button class="market-pill-btn" data-cost="50" data-type="medkit" data-name="Medicine">
+                <span class="pill-item-name">Medicine</span>
+                <span class="pill-item-cost">$50 in Capitol Credits</span>
+              </button>
+
+              <div class="market-divider-or">OR</div>
+
+              <button class="market-pill-btn" data-cost="300" data-type="food" data-name="Water">
+                <span class="pill-item-name">Water</span>
+                <span class="pill-item-cost">$300 in Capitol Credits</span>
+              </button>
+
+              <button class="market-pill-btn" data-cost="350" data-type="food" data-name="Food Packet">
+                <span class="pill-item-name">Food Packet</span>
+                <span class="pill-item-cost">$350 in Capitol Credits</span>
+              </button>
+            </div>
+
+            <!-- Down Arrow Nav -->
+            <button class="market-scroll-nav nav-down" id="btn-market-down">∨</button>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 2: ARENA LIVE (THE 75TH CLOCK ARENA 3D SIMULATOR) -->
+    <!-- ====================================================== -->
+    <div id="view-arena" class="portal-view-container">
+      
+      <!-- Sub-Header for Arena Command -->
+      <div class="arena-sim-header">
+        <div class="sim-header-left">
+          <span class="sim-tag">75TH QUARTER QUELL ARENA</span>
+          <h2 class="sim-title">TACTICAL CLOCKWORK COMMAND CENTER</h2>
+        </div>
+
+        <div class="sim-telemetry-pills">
+          <div class="sim-pill"><span id="cycle-label">DAY 1</span> (<span id="clock-display">12:00</span>)</div>
+          <div class="sim-pill gold"><span id="credits-count">500 CR</span></div>
+          <div class="sim-pill alert"><span id="tributes-alive-count">24 / 24</span> SURVIVORS</div>
+          <div class="sim-pill active-trap"><span id="active-clock-sector-badge">12:00 LIGHTNING TREE</span></div>
+        </div>
+
+        <div class="sim-controls-group">
+          <button class="sim-btn" id="btn-pause" title="Pause / Resume">⏸</button>
+          <button class="sim-btn active" id="btn-speed-1">1x</button>
+          <button class="sim-btn" id="btn-speed-2">2x</button>
+          <button class="sim-btn" id="btn-speed-5">5x</button>
+          <button class="sim-btn" id="btn-audio-toggle" title="Toggle Sound">🔊</button>
+          <button class="sim-btn return-home-btn" id="btn-back-to-home">⌂ RETURN HOME</button>
+        </div>
+      </div>
+
+      <!-- 3-Column Arena Simulation Layout -->
+      <div class="arena-command-3col">
+        <!-- LEFT: Tribute Bio-Telemetry (24) -->
+        <aside class="arena-col roster-col">
+          <div class="col-head">
+            <span>BIO-TELEMETRY (24)</span>
+            <select id="roster-filter-district" class="arena-select">
+              <option value="all">ALL DISTRICTS</option>
+              <option value="1">District 1 (Luxury)</option>
+              <option value="2">District 2 (Masonry)</option>
+              <option value="3">District 3 (Technology)</option>
+              <option value="4">District 4 (Fishing)</option>
+              <option value="5">District 5 (Power)</option>
+              <option value="6">District 6 (Transport)</option>
+              <option value="7">District 7 (Lumber)</option>
+              <option value="8">District 8 (Textiles)</option>
+              <option value="9">District 9 (Grain)</option>
+              <option value="10">District 10 (Livestock)</option>
+              <option value="11">District 11 (Agriculture)</option>
+              <option value="12">District 12 (Mining)</option>
+            </select>
+          </div>
+          <div class="tribute-cards-scroll" id="tribute-cards-container"></div>
+        </aside>
+
+        <!-- CENTER: 3D Three.js Clock Arena Map & Live Ticker -->
+        <section class="arena-col tactical-col">
+          <div class="tactical-map-wrapper">
+            <div class="map-hud-overlay">
+              <div class="map-hud-top-left">
+                <span class="hud-code">75TH ARENA // CLOCK RADIAL MATRIX</span>
+                <span class="hud-hint-gold">🔍 Click any sector (or spokes / center) to ZOOM IN</span>
+              </div>
+              <div class="map-hud-top-right">
+                <span class="active-hazard-badge" id="active-hazard-indicator">12:00 LIGHTNING TREE</span>
+                <button class="map-tool-btn" id="btn-center-map">⌖ RECENTER ARENA</button>
+              </div>
+            </div>
+
+            <!-- Three.js Canvas Container -->
+            <div id="three-canvas-container" class="three-viewport"></div>
+
+            <!-- SECTOR ZOOM INSPECTION HUD OVERLAY -->
+            <div class="sector-zoom-card" id="sector-zoom-card" style="display: none;">
+              <div class="sector-card-header">
+                <div class="sector-card-title-group">
+                  <span class="sector-card-icon" id="sector-hud-icon">⚡</span>
+                  <div>
+                    <div class="sector-card-hour" id="sector-hud-hour">12–1 O'CLOCK</div>
+                    <h3 class="sector-card-name" id="sector-hud-name">LIGHTNING TREE</h3>
+                  </div>
+                </div>
+                <button class="target-close" id="btn-close-sector-zoom">✕</button>
+              </div>
+              <div class="sector-card-body">
+                <!-- Fan Theory / Canon Status Badge -->
+                <div class="sector-theory-badge-row" id="sector-hud-canon-row">
+                  <span class="canon-pill" id="sector-hud-canon-pill">CANONICAL</span>
+                </div>
+                <div class="sector-stat-row">
+                  <span>THREAT RATING:</span>
+                  <strong class="danger-stat" id="sector-hud-danger">EXTREME (LETHAL)</strong>
+                </div>
+                <p class="sector-hud-desc" id="sector-hud-summary">
+                  Towering giant banyan tree struck by lightning at 12:00, discharging millions of volts.
+                </p>
+                <div class="sector-env-tag" id="sector-hud-env">
+                  Environment: Ancient banyan, hanging roots
+                </div>
+                <div class="sector-actions-row">
+                  <button class="sector-trigger-btn" id="btn-trigger-sector-trap">
+                    ⚡ TRIGGER TRAP NOW
+                  </button>
+                  <button class="sector-recenter-btn" id="btn-recenter-from-sector">
+                    ⌖ ZOOM OUT
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Target Locked Tribute Overlay -->
+            <div class="map-target-card" id="map-target-card" style="display: none;">
+              <div class="target-card-header">
+                <span class="target-title">TARGET LOCKED</span>
+                <button class="target-close" id="btn-close-target">✕</button>
+              </div>
+              <div class="target-body" id="target-card-body"></div>
+            </div>
+          </div>
+
+          <!-- Bottom: Live Feed Ticker -->
+          <div class="tactical-log-wrapper">
+            <div class="log-header">
+              <span class="radar-sweep"></span>
+              <span class="log-title">SURVEILLANCE &amp; COMBAT TICKER FEED</span>
+              <div class="log-filter-tabs">
+                <button class="log-tab active" data-filter="all">ALL</button>
+                <button class="log-tab" data-filter="combat">COMBAT</button>
+                <button class="log-tab" data-filter="hazard">HAZARDS</button>
+                <button class="log-tab" data-filter="sponsor">SPONSOR</button>
+                <button class="log-tab" data-filter="fallen">FALLEN</button>
+              </div>
+            </div>
+            <div class="log-stream-container" id="event-log-container"></div>
+          </div>
+        </section>
+
+        <!-- RIGHT: Gamemaker Controls (Plutarch Heavensbee) -->
+        <aside class="arena-col gamemaker-col">
+          <div class="col-head danger">
+            <span>GAMEMAKER CONSOLE</span>
+            <small>PLUTARCH HEAVENSBEE</small>
+          </div>
+          <div class="gamemaker-content-scroll">
+            <div class="gm-box">
+              <div class="gm-title">🎯 TARGET RECIPIENT</div>
+              <select id="gamemaker-tribute-select" class="arena-select full-width">
+                <option value="">-- AUTO-SELECT: HIGHEST ODDS --</option>
+              </select>
+            </div>
+
+            <div class="gm-box">
+              <div class="gm-title">🪂 SILVER PARACHUTE SPONSORSHIP</div>
+              <div class="gm-action-grid">
+                <button class="gm-btn sponsor-btn" data-cost="80" data-type="medkit">
+                  💉 Burn Ointment (80 CR)
+                </button>
+                <button class="gm-btn sponsor-btn" data-cost="50" data-type="food">
+                  🍞 District Bread (50 CR)
+                </button>
+                <button class="gm-btn sponsor-btn" data-cost="120" data-type="weapon">
+                  🔱 Trident Tip (120 CR)
+                </button>
+                <button class="gm-btn sponsor-btn" data-cost="90" data-type="surprise">
+                  🎁 Spile &amp; Wire (90 CR)
+                </button>
+              </div>
+            </div>
+
+            <div class="gm-box">
+              <div class="gm-title danger">⏰ CLOCK SECTOR STRIKES <span class="demo-tag">[SIMULATION]</span></div>
+              <div class="gm-action-grid">
+                <button class="gm-btn hazard-btn" data-cost="160" data-type="lightning">
+                  ⚡ 12:00 Lightning (160 CR)
+                </button>
+                <button class="gm-btn hazard-btn" data-cost="120" data-type="fog">
+                  🌫️ 2:00 Poison Fog (120 CR)
+                </button>
+                <button class="gm-btn hazard-btn" data-cost="150" data-type="mutts">
+                  🐒 3:00 Monkeys (150 CR)
+                </button>
+                <button class="gm-btn hazard-btn" data-cost="180" data-type="wave">
+                  🌊 10:00 Tidal Wave (180 CR)
+                </button>
+              </div>
+            </div>
+
+            <div class="gm-box">
+              <div class="gm-title">⚙️ ARENA MECHANICS</div>
+              <button class="gm-intervene-btn" id="btn-spin-cornucopia">
+                🔄 SPIN CORNUCOPIA ISLAND (100 CR)
+              </button>
+              <button class="gm-intervene-btn gold" id="btn-force-skirmish">
+                ⚔️ FORCE SPOKE DUEL (FREE)
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 3: TRIBUTES DIRECTORY VIEW                        -->
+    <!-- ====================================================== -->
+    <div id="view-tributes" class="portal-view-container">
+      <div class="sub-view-padded">
+        <div class="sub-view-header">
+          <h2>75TH QUARTER QUELL // TRIBUTE ROSTER &amp; ODDS</h2>
+          <p>OFFICIAL ODDS COMPILATION FROM CAESAR FLICKERMAN</p>
+        </div>
+        <div class="gallery-cards-grid" id="full-tributes-gallery-grid"></div>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 4: DISTRICTS GUIDE VIEW                           -->
+    <!-- ====================================================== -->
+    <div id="view-districts" class="portal-view-container">
+      <div class="sub-view-padded">
+        <div class="sub-view-header">
+          <h2>PANEM // THE 12 DISTRICTS</h2>
+          <p>DISTRICT INDUSTRIES, EXPORTS, AND TRIBUTE CONTRIBUTIONS</p>
+        </div>
+        <div class="districts-grid" id="districts-info-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 5: SPONSOR PACKAGES VIEW                          -->
+    <!-- ====================================================== -->
+    <div id="view-sponsor" class="portal-view-container">
+      <div class="sub-view-padded">
+        <div class="sub-view-header">
+          <h2>CAPITOL CITIZEN SPONSORSHIP REGISTRY</h2>
+          <p>AUTHORIZE SILVER PARACHUTE DELIVERIES DIRECT TO ARENA TRIBUTES</p>
+        </div>
+        <div class="sponsor-packages-grid">
+          <div class="sponsor-pkg-card">
+            <div class="pkg-header">
+              <span class="pkg-icon">💉</span>
+              <h3>MEDICAL &amp; BURN OINTMENT</h3>
+            </div>
+            <p>Treats fatal chemical burns from Sector 2 Poison Fog and muttation wounds.</p>
+            <div class="pkg-price">300 CAPITOL CREDITS</div>
+            <button class="gold-sponsor-btn" onclick="alert('Sponsorship delivery requested! Parachute queued.')">SPONSOR NOW</button>
+          </div>
+          <div class="sponsor-pkg-card">
+            <div class="pkg-header">
+              <span class="pkg-icon">🌊</span>
+              <h3>PURIFIED WATER FLASK</h3>
+            </div>
+            <p>Essential hydration for surviving saltwater lake dehydration and physical exertion.</p>
+            <div class="pkg-price">250 CAPITOL CREDITS</div>
+            <button class="gold-sponsor-btn" onclick="alert('Water flask delivery requested!')">SPONSOR NOW</button>
+          </div>
+          <div class="sponsor-pkg-card">
+            <div class="pkg-header">
+              <span class="pkg-icon">🍞</span>
+              <h3>DISTRICT BREAD PACKET</h3>
+            </div>
+            <p>High-calorie dense rations baked according to specific home district recipes.</p>
+            <div class="pkg-price">250 CAPITOL CREDITS</div>
+            <button class="gold-sponsor-btn" onclick="alert('Bread packet delivery requested!')">SPONSOR NOW</button>
+          </div>
+          <div class="sponsor-pkg-card">
+            <div class="pkg-header">
+              <span class="pkg-icon">🎁</span>
+              <h3>SPILE &amp; COPPER WIRE</h3>
+            </div>
+            <p>Critical survival utility to extract fresh water from trees and channel lightning strikes.</p>
+            <div class="pkg-price">400 CAPITOL CREDITS</div>
+            <button class="gold-sponsor-btn" onclick="alert('Spile & Wire delivery requested!')">SPONSOR NOW</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 6: HISTORY & 75TH ARENA ARCHIVES                  -->
+    <!-- ====================================================== -->
+    <div id="view-history" class="portal-view-container">
+      <div class="sub-view-padded">
+        <div class="sub-view-header">
+          <h2>75TH HUNGER GAMES ARENA ARCHIVES &amp; VISUAL GUIDE</h2>
+          <p>THE QUARTER QUELL CLOCKWORK ARENA INFOGRAPHIC AND OFFICIAL ARCHIVAL PHOTOGRAPHY</p>
+        </div>
+        <div class="history-gallery-grid">
+          <div class="history-card large-span">
+            <div class="history-card-title">75TH HUNGER GAMES ARENA VISUAL GUIDE (CLOCK FACE)</div>
+            <img src="assets/images/clock_arena_guide.jpg" class="history-img" alt="Clock Arena Guide">
+          </div>
+          <div class="history-card">
+            <div class="history-card-title">FULL ARENA OVERHEAD PHOTOGRAPHY</div>
+            <img src="assets/images/clock_arena_overhead.jpg" class="history-img" alt="Arena Overhead">
+          </div>
+          <div class="history-card">
+            <div class="history-card-title">THE CORNUCOPIA ON VOLCANIC BASALT ISLAND</div>
+            <img src="assets/images/cornucopia_75.jpg" class="history-img" alt="Cornucopia Island">
+          </div>
+          <div class="history-card">
+            <div class="history-card-title">SECTOR 12 — THE LIGHTNING TREE</div>
+            <img src="assets/images/lightning_tree_75.jpg" class="history-img" alt="Lightning Tree">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- VIEW 7: CAPITOL TV COMMENTARY                          -->
+    <!-- ====================================================== -->
+    <div id="view-tv" class="portal-view-container">
+      <div class="sub-view-padded">
+        <div class="sub-view-header">
+          <h2>CAPITOL TV // LIVE COMMENTARY &amp; ANALYSIS</h2>
+          <p>EXPERT ANALYSIS BY CAESAR FLICKERMAN &amp; CLAUDIUS TEMPLESMITH</p>
+        </div>
+        <div class="tv-commentary-wrap">
+          <div class="tv-host-box">
+            <div class="tv-host-title">🎙️ CAESAR FLICKERMAN — ARENA ANALYSIS</div>
+            <p class="tv-host-quote">"What an incredible display of skill and courage from our victors! As the clock advances each hour, the arena unleashes unmatched peril. Remember citizens, your sponsorships can change everything in seconds!"</p>
+          </div>
+          <div class="tv-host-box">
+            <div class="tv-host-title">⚡ CLAUDIUS TEMPLESMITH — HOURLY TRAP REPORT</div>
+            <p class="tv-host-quote">"Watch the perimeter closely as we approach the top of the hour! The Gamemakers have outdone themselves with this clockwork design."</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: NIGHTFALL FALLEN TRIBUTES MEMORIAL                -->
+  <!-- ======================================================== -->
+  <div class="hud-modal-backdrop" id="modal-nightfall" style="display: none;">
+    <div class="hud-modal-card nightfall-card">
+      <div class="nightfall-seal-wrap">
+        <div class="capitol-crest large">
+          <svg viewBox="0 0 100 100" class="crest-svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2"/>
+            <polygon points="50,10 58,35 85,35 63,51 72,78 50,62 28,78 37,51 15,35 42,35" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="nightfall-sub">PANEM ANTHEM BROADCAST // NIGHTFALL MEMORIAL</div>
+        <h2 class="nightfall-title" id="nightfall-day-title">FALLEN TRIBUTES — DAY 1</h2>
+        <p class="nightfall-desc">The Capitol honors the fallen in the 75th Hunger Games.</p>
+      </div>
+
+      <div class="fallen-tributes-roster" id="nightfall-fallen-list"></div>
+
+      <div class="nightfall-actions">
+        <button class="modal-action-btn gold-action" id="btn-close-nightfall">RESUME BROADCAST</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VICTORY CEREMONY                                  -->
+  <!-- ======================================================== -->
+  <div class="hud-modal-backdrop" id="modal-victory" style="display: none;">
+    <div class="hud-modal-card victory-card">
+      <div class="victory-header">
+        <div class="victory-crown">👑</div>
+        <div class="victory-sub">THE 75TH HUNGER GAMES HAVE CONCLUDED</div>
+        <h2 class="victory-title">WE HAVE A VICTOR!</h2>
+      </div>
+
+      <div class="victor-showcase" id="victor-showcase-box"></div>
+      <div class="victory-recap-table" id="victory-recap-stats"></div>
+
+      <div class="victory-actions">
+        <button class="modal-action-btn gold-action" id="btn-victory-restart">LAUNCH NEW ARENA SIMULATION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/tributes-data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
