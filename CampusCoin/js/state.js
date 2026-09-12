@@ -16,40 +16,68 @@ const CATEGORIES = [
 ];
 
 const DAYS_OF_WEEK = [
-  { index: 0, name: 'Sunday', short: 'Sun' },
-  { index: 1, name: 'Monday', short: 'Mon' },
-  { index: 2, name: 'Tuesday', short: 'Tue' },
-  { index: 3, name: 'Wednesday', short: 'Wed' },
-  { index: 4, name: 'Thursday', short: 'Thu' },
-  { index: 5, name: 'Friday', short: 'Fri' },
-  { index: 6, name: 'Saturday', short: 'Sat' }
+  { index: 0, name: 'Monday', short: 'Mon' },
+  { index: 1, name: 'Tuesday', short: 'Tue' },
+  { index: 2, name: 'Wednesday', short: 'Wed' },
+  { index: 3, name: 'Thursday', short: 'Thu' },
+  { index: 4, name: 'Friday', short: 'Fri' },
+  { index: 5, name: 'Saturday', short: 'Sat' },
+  { index: 6, name: 'Sunday', short: 'Sun' }
 ];
 
 /**
- * Given any Date or date string, returns the Sunday Date object (00:00:00) of that week
+ * Given any Date or date string, returns the Monday Date object (00:00:00) of that week
  */
-function getSundayOfWeek(d = new Date()) {
+function getMondayOfWeek(d = new Date()) {
   const date = (typeof d === 'string') ? new Date(d + (d.length === 10 ? 'T00:00:00' : '')) : new Date(d);
-  const sun = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  sun.setDate(sun.getDate() - sun.getDay());
-  return sun;
+  const mon = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = mon.getDay();
+  const diff = (day + 6) % 7;
+  mon.setDate(mon.getDate() - diff);
+  return mon;
 }
 
 /**
- * Given a Sunday Date object, returns the Wednesday Date object (+3 days)
+ * Returns the start of the week (Monday)
  */
-function getWednesdayOfWeek(sundayDate) {
-  const wed = new Date(sundayDate);
-  wed.setDate(sundayDate.getDate() + 3);
+function getStartOfWeek(d = new Date()) {
+  return getMondayOfWeek(d);
+}
+
+/**
+ * Given a date or Monday Date object, returns the Wednesday Date object (+2 days from Monday)
+ */
+function getWednesdayOfWeek(dateOrMonday) {
+  const mon = getMondayOfWeek(dateOrMonday);
+  const wed = new Date(mon);
+  wed.setDate(mon.getDate() + 2);
   return wed;
 }
 
 /**
- * Given a Sunday Date object, returns the Saturday Date object (+6 days)
+ * Given a date or Monday Date object, returns the Sunday Date object (+6 days from Monday, end of week)
  */
-function getSaturdayOfWeek(sundayDate) {
-  const sat = new Date(sundayDate);
-  sat.setDate(sundayDate.getDate() + 6);
+function getSundayOfWeek(dateOrMonday) {
+  const mon = getMondayOfWeek(dateOrMonday);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  return sun;
+}
+
+/**
+ * Returns the end of the week (Sunday)
+ */
+function getEndOfWeek(dateOrMonday) {
+  return getSundayOfWeek(dateOrMonday);
+}
+
+/**
+ * Given a date or Monday Date object, returns the Saturday Date object (+5 days from Monday)
+ */
+function getSaturdayOfWeek(dateOrMonday) {
+  const mon = getMondayOfWeek(dateOrMonday);
+  const sat = new Date(mon);
+  sat.setDate(mon.getDate() + 5);
   return sat;
 }
 
@@ -57,7 +85,7 @@ function getSaturdayOfWeek(sundayDate) {
  * Given a date or weekId, calculates which month it belongs to based on the Wednesday Rule
  */
 function getWeekMonthInfo(dateOrWeekId) {
-  let sunday;
+  let monday;
   if (typeof dateOrWeekId === 'string' && dateOrWeekId.includes('-W')) {
     const info = getWeekDateInfo(dateOrWeekId);
     return {
@@ -67,10 +95,10 @@ function getWeekMonthInfo(dateOrWeekId) {
       year: info.year
     };
   } else {
-    sunday = getSundayOfWeek(dateOrWeekId);
+    monday = getMondayOfWeek(dateOrWeekId);
   }
 
-  const wed = getWednesdayOfWeek(sunday);
+  const wed = getWednesdayOfWeek(monday);
   const year = wed.getFullYear();
   const monthIndex = wed.getMonth();
   const monthNum = String(monthIndex + 1).padStart(2, '0');
@@ -85,18 +113,18 @@ function getWeekMonthInfo(dateOrWeekId) {
  * Year and week number are determined by the Wednesday of that week.
  */
 function getWeekIdentifier(d = new Date()) {
-  const sun = getSundayOfWeek(d);
-  const wed = getWednesdayOfWeek(sun);
+  const mon = getMondayOfWeek(d);
+  const wed = getWednesdayOfWeek(mon);
   const year = wed.getFullYear();
 
-  // Find the Sunday of the week that contains the first Wednesday of the year
+  // Find the Monday of the week that contains the first Wednesday of the year
   const jan1 = new Date(year, 0, 1);
   const firstWed = new Date(jan1);
   firstWed.setDate(jan1.getDate() + ((3 - jan1.getDay() + 7) % 7));
-  const firstSun = new Date(firstWed);
-  firstSun.setDate(firstWed.getDate() - 3);
+  const firstMon = new Date(firstWed);
+  firstMon.setDate(firstWed.getDate() - 2);
 
-  const diffMs = sun.getTime() - firstSun.getTime();
+  const diffMs = mon.getTime() - firstMon.getTime();
   const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
   const weekNum = Math.floor(diffDays / 7) + 1;
 
@@ -108,16 +136,16 @@ function getWeekIdentifier(d = new Date()) {
  */
 function getWeekDateInfo(weekId) {
   if (!weekId || typeof weekId !== 'string' || !weekId.includes('-W')) {
-    const todaySun = getSundayOfWeek(new Date());
-    const todayWed = getWednesdayOfWeek(todaySun);
-    const todaySat = getSaturdayOfWeek(todaySun);
-    const y = todaySun.getFullYear();
-    const m = String(todaySun.getMonth() + 1).padStart(2, '0');
-    const d = String(todaySun.getDate()).padStart(2, '0');
-    const startMonth = todaySun.toLocaleDateString('en-US', { month: 'short' });
-    const startDay = String(todaySun.getDate()).padStart(2, '0');
-    const endMonth = todaySat.toLocaleDateString('en-US', { month: 'short' });
-    const endDay = String(todaySat.getDate()).padStart(2, '0');
+    const todayMon = getMondayOfWeek(new Date());
+    const todayWed = getWednesdayOfWeek(todayMon);
+    const todaySun = getSundayOfWeek(todayMon);
+    const y = todayMon.getFullYear();
+    const m = String(todayMon.getMonth() + 1).padStart(2, '0');
+    const d = String(todayMon.getDate()).padStart(2, '0');
+    const startMonth = todayMon.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = String(todayMon.getDate()).padStart(2, '0');
+    const endMonth = todaySun.toLocaleDateString('en-US', { month: 'short' });
+    const endDay = String(todaySun.getDate()).padStart(2, '0');
     const dateRangeStr = (startMonth === endMonth)
       ? `${startMonth} ${startDay} – ${startMonth} ${endDay}`
       : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
@@ -139,31 +167,31 @@ function getWeekDateInfo(weekId) {
   const year = parseInt(parts[0], 10);
   const weekNum = parseInt(parts[1], 10);
 
-  // Find the first Sunday of the week with the first Wednesday in that year
+  // Find the first Monday of the week with the first Wednesday in that year
   const jan1 = new Date(year, 0, 1);
   const firstWed = new Date(jan1);
   firstWed.setDate(jan1.getDate() + ((3 - jan1.getDay() + 7) % 7));
-  const firstSun = new Date(firstWed);
-  firstSun.setDate(firstWed.getDate() - 3);
+  const firstMon = new Date(firstWed);
+  firstMon.setDate(firstWed.getDate() - 2);
 
-  const targetSun = new Date(firstSun);
-  targetSun.setDate(firstSun.getDate() + (weekNum - 1) * 7);
+  const targetMon = new Date(firstMon);
+  targetMon.setDate(firstMon.getDate() + (weekNum - 1) * 7);
 
-  const targetWed = getWednesdayOfWeek(targetSun);
-  const targetSat = getSaturdayOfWeek(targetSun);
+  const targetWed = getWednesdayOfWeek(targetMon);
+  const targetSun = getSundayOfWeek(targetMon);
 
-  const startMonth = targetSun.toLocaleDateString('en-US', { month: 'short' });
-  const startDay = String(targetSun.getDate()).padStart(2, '0');
-  const endMonth = targetSat.toLocaleDateString('en-US', { month: 'short' });
-  const endDay = String(targetSat.getDate()).padStart(2, '0');
+  const startMonth = targetMon.toLocaleDateString('en-US', { month: 'short' });
+  const startDay = String(targetMon.getDate()).padStart(2, '0');
+  const endMonth = targetSun.toLocaleDateString('en-US', { month: 'short' });
+  const endDay = String(targetSun.getDate()).padStart(2, '0');
 
   const dateRangeStr = (startMonth === endMonth)
     ? `${startMonth} ${startDay} – ${startMonth} ${endDay}`
     : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
 
-  const y = targetSun.getFullYear();
-  const m = String(targetSun.getMonth() + 1).padStart(2, '0');
-  const d = String(targetSun.getDate()).padStart(2, '0');
+  const y = targetMon.getFullYear();
+  const m = String(targetMon.getMonth() + 1).padStart(2, '0');
+  const d = String(targetMon.getDate()).padStart(2, '0');
   const startDateStr = `${y}-${m}-${d}`;
 
   const monthIndex = targetWed.getMonth();
@@ -199,9 +227,6 @@ function getWeeksForMonth(year, monthIndex) {
 
   while (currentWedDay <= daysInMonth) {
     const wed = new Date(year, monthIndex, currentWedDay);
-    const sun = new Date(wed);
-    sun.setDate(wed.getDate() - 3);
-
     const weekId = getWeekIdentifier(wed);
     const info = getWeekDateInfo(weekId);
 
@@ -219,6 +244,9 @@ function getWeeksForMonth(year, monthIndex) {
 }
 
 if (typeof window !== 'undefined') {
+  window.DAYS_OF_WEEK = DAYS_OF_WEEK;
+  window.getMondayOfWeek = getMondayOfWeek;
+  window.getStartOfWeek = getStartOfWeek;
   window.getSundayOfWeek = getSundayOfWeek;
   window.getWednesdayOfWeek = getWednesdayOfWeek;
   window.getSaturdayOfWeek = getSaturdayOfWeek;
@@ -228,6 +256,9 @@ if (typeof window !== 'undefined') {
   window.getWeeksForMonth = getWeeksForMonth;
 }
 if (typeof global !== 'undefined') {
+  global.DAYS_OF_WEEK = DAYS_OF_WEEK;
+  global.getMondayOfWeek = getMondayOfWeek;
+  global.getStartOfWeek = getStartOfWeek;
   global.getSundayOfWeek = getSundayOfWeek;
   global.getWednesdayOfWeek = getWednesdayOfWeek;
   global.getSaturdayOfWeek = getSaturdayOfWeek;
@@ -311,25 +342,25 @@ function getSampleState(refDate = new Date()) {
   // Construct active week with realistic sample data
   const initialWeek = createEmptyWeek(currentWeekId, currentWeekInfo.fullLabel, currentWeekInfo.startDate, defaultCash);
 
-  // Sample items for Sunday (Day 0)
+  // Sample items for Monday (Day 0)
   initialWeek.dailySpends[0] = {
     food: { items: [{ id: '101', name: 'Kurkure & Snacks', amount: 20, isBorrowed: false }, { id: '102', name: 'Cafeteria Lunch', amount: 160, isBorrowed: false }, { id: '103', name: 'Evening Chai', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '104', name: 'Laundry Detergent', amount: 150, isBorrowed: false }] }
   };
 
-  // Monday (Day 1)
+  // Tuesday (Day 1)
   initialWeek.dailySpends[1] = {
     food: { items: [{ id: '201', name: 'Lunch Thali', amount: 180, isBorrowed: false }, { id: '202', name: 'Fruit Juice', amount: 60, isBorrowed: false }] },
     necessities: { items: [] }
   };
 
-  // Tuesday (Day 2)
+  // Wednesday (Day 2)
   initialWeek.dailySpends[2] = {
     food: { items: [{ id: '301', name: 'Hostel Breakfast', amount: 80, isBorrowed: false }, { id: '302', name: 'Evening Tea', amount: 20, isBorrowed: false }] },
     necessities: { items: [{ id: '303', name: 'Pharmacy supplies', amount: 220, isBorrowed: false }] }
   };
 
-  // Wednesday (Day 3)
+  // Thursday (Day 3)
   initialWeek.dailySpends[3] = {
     food: { items: [{ id: '401', name: 'Kurkure & Biscuits', amount: 30, isBorrowed: false }, { id: '402', name: 'Canteen Coffee', amount: 40, isBorrowed: false }] },
     necessities: { items: [] }
@@ -363,9 +394,9 @@ function getSampleState(refDate = new Date()) {
   ];
 
   // Also include adjacent next week if needed
-  const nextSunday = new Date(currentWeekInfo.startDate + 'T00:00:00');
-  nextSunday.setDate(nextSunday.getDate() + 7);
-  const nextWeekId = getWeekIdentifier(nextSunday);
+  const nextMonday = new Date(currentWeekInfo.startDate + 'T00:00:00');
+  nextMonday.setDate(nextMonday.getDate() + 7);
+  const nextWeekId = getWeekIdentifier(nextMonday);
   if (!weeksState[nextWeekId]) {
     const nextInfo = getWeekDateInfo(nextWeekId);
     weeksState[nextWeekId] = createEmptyWeek(nextWeekId, nextInfo.fullLabel, nextInfo.startDate, defaultCash);
@@ -619,7 +650,7 @@ class StateManager {
     }
     if (!this.state.monthlyArchives) this.state.monthlyArchives = [];
 
-    // Ensure all weeks have exact Sunday-to-Saturday date ranges in their labels and startDates
+    // Ensure all weeks have exact Monday-to-Sunday date ranges in their labels and startDates
     Object.keys(this.state.weeks).forEach(wId => {
       const w = this.state.weeks[wId];
       if (w) {

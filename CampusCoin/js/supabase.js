@@ -276,9 +276,16 @@
     if (!supabaseClient) await initClient();
     if (!supabaseClient) throw new Error('Supabase client is not initialized.');
 
+    const redirectTo = (typeof window !== 'undefined' && window.location)
+      ? (window.location.origin + window.location.pathname)
+      : 'https://campuscoin-black.vercel.app';
+
     const { data, error } = await supabaseClient.auth.signUp({
       email: email.trim(),
-      password: password
+      password: password,
+      options: {
+        emailRedirectTo: redirectTo
+      }
     });
 
     if (error) throw error;

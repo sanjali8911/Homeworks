@@ -13,7 +13,7 @@ const CampusInsights = {
     const surprises = CampusCalculator.getSurprisesTotal(week);
 
     const now = new Date();
-    const currentDay = now.getDay();
+    const currentDay = (now.getDay() + 6) % 7;
     const isApproachingWeekend = currentDay >= 4;
 
     // 1. Food Analysis

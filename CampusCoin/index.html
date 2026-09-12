@@ -303,11 +303,11 @@
                   </td>
                 </tr>
 
-                <!-- 3. Daily Spend Rows (Sunday through Saturday) -->
-                <!-- Sunday (0) -->
+                <!-- 3. Daily Spend Rows (Monday through Sunday) -->
+                <!-- Monday (0) -->
                 <tr class="day-row" data-day="0" id="row-day-0">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Sunday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Monday</span><span class="day-sub"
                         id="date-day-0">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="0" data-cat="food"></td>
@@ -315,10 +315,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-0">₹0</span></td>
                 </tr>
 
-                <!-- Monday (1) -->
+                <!-- Tuesday (1) -->
                 <tr class="day-row" data-day="1" id="row-day-1">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Monday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Tuesday</span><span class="day-sub"
                         id="date-day-1">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="1" data-cat="food"></td>
@@ -326,10 +326,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-1">₹0</span></td>
                 </tr>
 
-                <!-- Tuesday (2) -->
+                <!-- Wednesday (2) -->
                 <tr class="day-row" data-day="2" id="row-day-2">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Tuesday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Wednesday</span><span class="day-sub"
                         id="date-day-2">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="2" data-cat="food"></td>
@@ -337,10 +337,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-2">₹0</span></td>
                 </tr>
 
-                <!-- Wednesday (3) -->
+                <!-- Thursday (3) -->
                 <tr class="day-row" data-day="3" id="row-day-3">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Wednesday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Thursday</span><span class="day-sub"
                         id="date-day-3">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="3" data-cat="food"></td>
@@ -348,10 +348,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-3">₹0</span></td>
                 </tr>
 
-                <!-- Thursday (4) -->
+                <!-- Friday (4) -->
                 <tr class="day-row" data-day="4" id="row-day-4">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Thursday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Friday</span><span class="day-sub"
                         id="date-day-4">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="4" data-cat="food"></td>
@@ -359,10 +359,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-4">₹0</span></td>
                 </tr>
 
-                <!-- Friday (5) -->
+                <!-- Saturday (5) -->
                 <tr class="day-row" data-day="5" id="row-day-5">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Friday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Saturday</span><span class="day-sub"
                         id="date-day-5">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="5" data-cat="food"></td>
@@ -370,10 +370,10 @@
                   <td class="cell-daily-total"><span class="daily-total-amt" id="daily-total-5">₹0</span></td>
                 </tr>
 
-                <!-- Saturday (6) -->
+                <!-- Sunday (6) -->
                 <tr class="day-row" data-day="6" id="row-day-6">
                   <td class="sticky-cell row-header-cell">
-                    <div class="day-meta"><span class="day-name">Saturday</span><span class="day-sub"
+                    <div class="day-meta"><span class="day-name">Sunday</span><span class="day-sub"
                         id="date-day-6">--</span></div>
                   </td>
                   <td class="cell-spend cell-col-food" data-day="6" data-cat="food"></td>
@@ -748,7 +748,7 @@
         <button id="cal-next-month" class="icon-btn"><i data-lucide="chevron-right"></i></button>
       </div>
       <div class="cal-grid-days">
-        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
       </div>
       <div class="cal-grid-cells" id="cal-grid-cells"></div>
       <div class="cal-pop-footer">
@@ -774,13 +774,13 @@
           <div class="form-group flex-1">
             <label for="cell-modal-day-select">Day of Week</label>
             <select id="cell-modal-day-select" class="form-select" required>
-              <option value="0">Sunday</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
+              <option value="0">Monday</option>
+              <option value="1">Tuesday</option>
+              <option value="2">Wednesday</option>
+              <option value="3">Thursday</option>
+              <option value="4">Friday</option>
+              <option value="5">Saturday</option>
+              <option value="6">Sunday</option>
             </select>
           </div>
 
@@ -919,13 +919,13 @@
           <div class="form-group flex-1">
             <label for="quick-day-select">Day of Week</label>
             <select id="quick-day-select" class="form-select" required>
-              <option value="0">Sunday</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
+              <option value="0">Monday</option>
+              <option value="1">Tuesday</option>
+              <option value="2">Wednesday</option>
+              <option value="3">Thursday</option>
+              <option value="4">Friday</option>
+              <option value="5">Saturday</option>
+              <option value="6">Sunday</option>
             </select>
           </div>
 
@@ -1066,13 +1066,13 @@
           <div class="form-group flex-1">
             <label for="surprise-day-select">Day Incurred</label>
             <select id="surprise-day-select" class="form-select">
-              <option value="0">Sunday</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
+              <option value="0">Monday</option>
+              <option value="1">Tuesday</option>
+              <option value="2">Wednesday</option>
+              <option value="3">Thursday</option>
+              <option value="4">Friday</option>
+              <option value="5">Saturday</option>
+              <option value="6">Sunday</option>
             </select>
           </div>
         </div>

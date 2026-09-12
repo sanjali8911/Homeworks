@@ -43,33 +43,33 @@ global.CATEGORIES = [
   { id: 'necessities', name: 'Necessities', emoji: '🧼', defaultPct: 0.76 }
 ];
 global.DAYS_OF_WEEK = [
-  { index: 0, name: 'Sunday', short: 'Sun' },
-  { index: 1, name: 'Monday', short: 'Mon' },
-  { index: 2, name: 'Tuesday', short: 'Tue' },
-  { index: 3, name: 'Wednesday', short: 'Wed' },
-  { index: 4, name: 'Thursday', short: 'Thu' },
-  { index: 5, name: 'Friday', short: 'Fri' },
-  { index: 6, name: 'Saturday', short: 'Sat' }
+  { index: 0, name: 'Monday', short: 'Mon' },
+  { index: 1, name: 'Tuesday', short: 'Tue' },
+  { index: 2, name: 'Wednesday', short: 'Wed' },
+  { index: 3, name: 'Thursday', short: 'Thu' },
+  { index: 4, name: 'Friday', short: 'Fri' },
+  { index: 5, name: 'Saturday', short: 'Sat' },
+  { index: 6, name: 'Sunday', short: 'Sun' }
 ];
 
 console.log('=== RUNNING CAMPUSCOIN V7.0 SUPABASE & DYNAMIC CALENDAR TESTS ===\n');
 
 // Test 1: Wednesday Rule for Month Assignment (Between-Month Weeks)
 console.log('Test 1: Wednesday Rule for Month Assignment (Between-Month Weeks)');
-const augWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-23T00:00:00')));
-console.assert(augWeekInfo.monthId === '2026-08', `Expected 2026-08 for Aug 23 week, got ${augWeekInfo.monthId}`);
-console.assert(augWeekInfo.dateRangeStr === 'Aug 23 – Aug 29', `Expected Aug 23 - Aug 29, got ${augWeekInfo.dateRangeStr}`);
-console.log(`✓ Aug 23 – Aug 29: Wednesday is Aug 26 -> Month is ${augWeekInfo.monthLabel} (${augWeekInfo.monthId})`);
+const augWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-24T00:00:00')));
+console.assert(augWeekInfo.monthId === '2026-08', `Expected 2026-08 for Aug 24 week, got ${augWeekInfo.monthId}`);
+console.assert(augWeekInfo.dateRangeStr === 'Aug 24 – Aug 30', `Expected Aug 24 - Aug 30, got ${augWeekInfo.dateRangeStr}`);
+console.log(`✓ Aug 24 – Aug 30: Wednesday is Aug 26 -> Month is ${augWeekInfo.monthLabel} (${augWeekInfo.monthId})`);
 
-const sepWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-30T00:00:00')));
-console.assert(sepWeekInfo.monthId === '2026-09', `Expected 2026-09 for Aug 30 week (Wed is Sep 02), got ${sepWeekInfo.monthId}`);
-console.assert(sepWeekInfo.dateRangeStr === 'Aug 30 – Sep 05', `Expected Aug 30 - Sep 05, got ${sepWeekInfo.dateRangeStr}`);
-console.log(`✓ Aug 30 – Sep 05: Wednesday is Sep 02 -> Month is correctly ${sepWeekInfo.monthLabel} (${sepWeekInfo.monthId})`);
+const sepWeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2026-08-31T00:00:00')));
+console.assert(sepWeekInfo.monthId === '2026-09', `Expected 2026-09 for Aug 31 week (Wed is Sep 02), got ${sepWeekInfo.monthId}`);
+console.assert(sepWeekInfo.dateRangeStr === 'Aug 31 – Sep 06', `Expected Aug 31 - Sep 06, got ${sepWeekInfo.dateRangeStr}`);
+console.log(`✓ Aug 31 – Sep 06: Wednesday is Sep 02 -> Month is correctly ${sepWeekInfo.monthLabel} (${sepWeekInfo.monthId})`);
 
-const feb2027WeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2027-01-31T00:00:00')));
-console.assert(feb2027WeekInfo.monthId === '2027-02', `Expected 2027-02 for Jan 31 2027 week (Wed is Feb 03), got ${feb2027WeekInfo.monthId}`);
-console.assert(feb2027WeekInfo.dateRangeStr === 'Jan 31 – Feb 06', `Expected Jan 31 - Feb 06, got ${feb2027WeekInfo.dateRangeStr}`);
-console.log(`✓ Jan 31 – Feb 06 (2027): Wednesday is Feb 03 -> Month is correctly ${feb2027WeekInfo.monthLabel} (${feb2027WeekInfo.monthId})\n`);
+const feb2027WeekInfo = getWeekDateInfo(getWeekIdentifier(new Date('2027-02-01T00:00:00')));
+console.assert(feb2027WeekInfo.monthId === '2027-02', `Expected 2027-02 for Feb 01 2027 week (Wed is Feb 03), got ${feb2027WeekInfo.monthId}`);
+console.assert(feb2027WeekInfo.dateRangeStr === 'Feb 01 – Feb 07', `Expected Feb 01 - Feb 07, got ${feb2027WeekInfo.dateRangeStr}`);
+console.log(`✓ Feb 01 – Feb 07 (2027): Wednesday is Feb 03 -> Month is correctly ${feb2027WeekInfo.monthLabel} (${feb2027WeekInfo.monthId})\n`);
 
 // Test 2: getWeeksForMonth returns all weeks in a month based on Wednesday
 console.log('Test 2: getWeeksForMonth for August 2026, September 2026, and 2027');
@@ -79,7 +79,7 @@ console.log(`✓ August 2026: ${augWeeks.length} weeks -> [${augWeeks.map(w => w
 
 const sepWeeks = getWeeksForMonth(2026, 8); // September (0-indexed 8)
 console.assert(sepWeeks.length === 5, `Expected 5 weeks in September 2026, got ${sepWeeks.length}`);
-console.assert(sepWeeks[0].dateRangeStr === 'Aug 30 – Sep 05', `Expected first week of Sep to be Aug 30 - Sep 05, got ${sepWeeks[0].dateRangeStr}`);
+console.assert(sepWeeks[0].dateRangeStr === 'Aug 31 – Sep 06', `Expected first week of Sep to be Aug 31 - Sep 06, got ${sepWeeks[0].dateRangeStr}`);
 console.log(`✓ September 2026: ${sepWeeks.length} weeks -> [${sepWeeks.map(w => w.dateRangeStr).join(', ')}]`);
 
 const jan2027Weeks = getWeeksForMonth(2027, 0); // January 2027 (0-indexed 0)
@@ -194,8 +194,8 @@ console.log('✓ Supabase Auth module, per-user RLS schema compatibility, and st
 console.log('\nTest 10: Dynamic Calendar for September 2027 (No Hardcoding)');
 const sep2027Weeks = getWeeksForMonth(2027, 8); // September 2027
 console.assert(sep2027Weeks.length === 5, `Expected 5 weeks in Sep 2027, got ${sep2027Weeks.length}`);
-console.assert(sep2027Weeks[0].dateRangeStr === 'Aug 29 – Sep 04', `Expected first week to be Aug 29 - Sep 04, got ${sep2027Weeks[0].dateRangeStr}`);
-console.assert(sep2027Weeks[4].dateRangeStr === 'Sep 26 – Oct 02', `Expected 5th week to be Sep 26 - Oct 02, got ${sep2027Weeks[4].dateRangeStr}`);
+console.assert(sep2027Weeks[0].dateRangeStr === 'Aug 30 – Sep 05', `Expected first week to be Aug 30 - Sep 05, got ${sep2027Weeks[0].dateRangeStr}`);
+console.assert(sep2027Weeks[4].dateRangeStr === 'Sep 27 – Oct 03', `Expected 5th week to be Sep 27 - Oct 03, got ${sep2027Weeks[4].dateRangeStr}`);
 
 const sep2027Summary = CampusCalculator.getMonthlySummary(CampusState.state, '2027-09');
 console.assert(sep2027Summary.monthId === '2027-09', 'Sep 2027 summary monthId is 2027-09');

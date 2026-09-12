@@ -201,7 +201,7 @@ function renderDynamicBudgetLabels() {
  */
 function renderDynamicDatesAndTodayBadge(week) {
   const today = new Date();
-  const todayDayIndex = today.getDay();
+  const todayDayIndex = (today.getDay() + 6) % 7;
   const todayDayName = today.toLocaleDateString('en-US', { weekday: 'long' });
 
   // Update Right Sidebar Safe-to-Spend Day Badge
@@ -225,7 +225,7 @@ function renderDynamicDatesAndTodayBadge(week) {
   const currentWeekId = getWeekIdentifier(today);
   const isCurrentCalendarWeek = (week.id === currentWeekId);
 
-  // Render day dates for day 0 (Sunday) to day 6 (Saturday)
+  // Render day dates for day 0 (Monday) to day 6 (Sunday)
   for (let d = 0; d < 7; d++) {
     const dayDate = new Date(startDate);
     dayDate.setDate(dayDate.getDate() + d);
@@ -1258,7 +1258,7 @@ function renderCalendarMonthGrid(year, month) {
 
   gridEl.innerHTML = '';
 
-  const firstDayIndex = dateObj.getDay();
+  const firstDayIndex = (dateObj.getDay() + 6) % 7;
   const totalDays = new Date(year, month + 1, 0).getDate();
   const prevMonthTotalDays = new Date(year, month, 0).getDate();
 
@@ -1645,7 +1645,7 @@ function setupModals() {
       openUnlockModal(() => openQuickAdd());
       return;
     }
-    const todayIndex = new Date().getDay();
+    const todayIndex = (new Date().getDay() + 6) % 7;
     const daySelect = document.getElementById('quick-day-select');
     if (daySelect) {
       daySelect.value = String(todayIndex);
@@ -1728,7 +1728,7 @@ function setupModals() {
 }
 
 function openSurpriseModal() {
-  const todayIndex = new Date().getDay();
+  const todayIndex = (new Date().getDay() + 6) % 7;
   const daySelect = document.getElementById('surprise-day-select');
   if (daySelect) daySelect.value = String(todayIndex);
   openModal('surprise-modal');
@@ -2848,6 +2848,32 @@ function setupAuthActions() {
     window.CampusSupabase.onAuthStateChange((event, session, user) => {
       updateUserProfileUI(user);
     });
+  }
+
+  // Handle Supabase auth callback tokens or errors in URL hash (e.g. from email confirmation links)
+  if (typeof window !== 'undefined' && window.location.hash) {
+    try {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const errorDesc = params.get('error_description');
+      const errorCode = params.get('error_code');
+      const accessToken = params.get('access_token');
+
+      if (errorDesc || errorCode) {
+        const readableMsg = decodeURIComponent(errorDesc || errorCode).replace(/\+/g, ' ');
+        if (window.CampusNotifications?.showToast) {
+          CampusNotifications.showToast(`Auth Notice: ${readableMsg}`, 'warning');
+        }
+        window.history.replaceState(null, '', window.location.pathname);
+      } else if (accessToken) {
+        if (window.CampusNotifications?.showToast) {
+          CampusNotifications.showToast('Account verified! Welcome to CampusCoin.', 'success');
+        }
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch (e) {
+      console.warn('Auth hash parsing notice:', e);
+    }
   }
 }
 

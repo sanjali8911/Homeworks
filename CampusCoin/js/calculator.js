@@ -205,7 +205,7 @@ const CampusCalculator = {
   getSafeToSpendToday(week) {
     const currency = (window.CampusState && window.CampusState.getCurrency) ? window.CampusState.getCurrency() : '₹';
     const now = new Date();
-    const currentDayIndex = now.getDay();
+    const currentDayIndex = (now.getDay() + 6) % 7;
     const currentCalWeekId = (typeof getWeekIdentifier === 'function') ? getWeekIdentifier(now) : null;
     const isPast = currentCalWeekId ? (week.id < currentCalWeekId) : false;
     const isFuture = currentCalWeekId ? (week.id > currentCalWeekId) : false;

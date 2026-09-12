@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusCoin — Broke by Wednesday? (Project Poster)</title>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Caveat:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --primary-blue: #2563eb;
+      --primary-blue-dark: #1d4ed8;
+      --primary-blue-light: #eff6ff;
+      --accent-green: #10b981;
+      --accent-green-light: #ecfdf5;
+      --accent-red: #ef4444;
+      --accent-red-light: #fef2f2;
+      --accent-amber: #f59e0b;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.12);
+      --font-main: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-hand: 'Caveat', cursive;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #eef2f6;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        linear-gradient(#e2e8f0 1px, transparent 1px),
+        linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      color: var(--text-main);
+      font-family: var(--font-main);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Top Control Bar */
+    .top-controls {
+      max-width: 1180px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 0.85rem 1.4rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title span {
+      color: var(--primary-blue);
+    }
+
+    .nav-toggle-group {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 9999px;
+      gap: 4px;
+    }
+
+    .nav-tab-btn {
+      border: none;
+      background: transparent;
+      padding: 0.45rem 1.1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-main);
+    }
+
+    .nav-tab-btn.active {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    .action-btn {
+      background: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      font-family: var(--font-main);
+    }
+
+    .action-btn:hover {
+      background: var(--primary-blue-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Main Poster Canvas Wrapper */
+    .poster-canvas {
+      max-width: 1180px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 28px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid #cbd5e1;
+      padding: 3.5rem 3.5rem 3rem 3.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Header Section */
+    .poster-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .app-big-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #60a5fa, #2563eb);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+    }
+
+    .app-title-block h1 {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      line-height: 1.1;
+    }
+
+    .gold-coin {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, #fef08a, #eab308);
+      border-radius: 50%;
+      border: 2px solid #ca8a04;
+      box-shadow: 0 2px 6px rgba(202, 138, 4, 0.3);
+    }
+
+    .app-title-block p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 0.2rem;
+    }
+
+    .header-tagline-handwritten {
+      font-family: var(--font-hand);
+      font-size: 2.1rem;
+      color: #2563eb;
+      font-weight: 700;
+      transform: rotate(3deg);
+      line-height: 1.1;
+      text-align: right;
+      letter-spacing: 0.02em;
+    }
+
+    /* Hero Problem / Solution Headline */
+    .hero-banner {
+      margin-bottom: 2.8rem;
+    }
+
+    .hero-banner h2 {
+      font-size: clamp(2.4rem, 5.5vw, 4.4rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin-bottom: 0.6rem;
+    }
+
+    .hero-banner h2 .text-red {
+      color: #ef4444;
+      position: relative;
+    }
+
+    .hero-banner .hero-subtitle {
+      font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-banner .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 820px;
+    }
+
+    /* 3-Column Showcase Section: Real UI Showcase */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 310px;
+      gap: 1.8rem;
+      align-items: center;
+      margin-bottom: 3.2rem;
+    }
+
+    /* Left Column: Feature Pills */
+    .features-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .feature-pill-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.9rem;
+    }
+
+    .pill-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.1rem;
+    }
+
+    .icon-blue-bg { background: #eff6ff; color: #2563eb; }
+    .icon-cyan-bg { background: #ecfeff; color: #0891b2; }
+    .icon-green-bg { background: #ecfdf5; color: #059669; }
+    .icon-purple-bg { background: #f5f3ff; color: #7c3aed; }
+    .icon-amber-bg { background: #fffbeb; color: #d97706; }
+    .icon-red-bg { background: #fef2f2; color: #dc2626; }
+
+    .pill-content h4 {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.15rem;
+    }
+
+    .pill-content p {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Center Column: Phone Mockup with ACTUAL UI */
+    .center-mockup-wrapper {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .device-phone {
+      width: 100%;
+      max-width: 360px;
+      background: #0f172a;
+      border-radius: 46px;
+      padding: 12px;
+      box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.1);
+      position: relative;
+    }
+
+    .phone-notch {
+      width: 90px;
+      height: 20px;
+      background: #0f172a;
+      border-radius: 9999px;
+      margin: 0 auto 8px auto;
+    }
+
+    .phone-screen {
+      background: #ffffff;
+      border-radius: 36px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      position: relative;
+    }
+
+    .screen-img {
+      width: 100%;
+      display: block;
+      height: auto;
+      object-fit: cover;
+    }
+
+    /* Floating Hero Safe-to-Spend Metric Card */
+    .floating-safe-card {
+      position: absolute;
+      bottom: 12%;
+      left: -20px;
+      right: -20px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border: 1px solid #93c5fd;
+      border-radius: 20px;
+      padding: 1.2rem 1.5rem;
+      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.22);
+      z-index: 10;
+    }
+
+    .safe-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 0.3rem;
+    }
+
+    .safe-card-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #0f172a;
+      font-family: var(--font-main);
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 0.3rem;
+    }
+
+    .safe-card-number span {
+      color: #2563eb;
+    }
+
+    .safe-card-number small {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .safe-card-sub {
+      font-size: 0.78rem;
+      color: #059669;
+      font-weight: 700;
+      margin-top: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* Right Column: Actual Real-UI Floating Cards */
+    .floating-cards-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .stat-floating-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 1.2rem;
+      box-shadow: var(--shadow-md);
+      transition: transform 0.2s ease;
+    }
+
+    .stat-floating-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .card-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .donut-preview-box {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .donut-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: conic-gradient(#3b82f6 0% 24%, #10b981 24% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .donut-inner {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .donut-legend {
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dot-blue { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; }
+    .dot-green { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+
+    /* Live Balance Capsule Card */
+    .capsule-live-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 14px;
+      padding: 1rem;
+    }
+
+    .capsule-live-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #166534;
+      margin-bottom: 0.3rem;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .capsule-val {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 0.4rem;
+    }
+
+    .capsule-sub-inflows {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .text-inflow-green { color: #15803d; }
+    .text-outflow-red { color: #b91c1c; }
+
+    /* Velocity Mini Chart Mockup */
+    .velocity-bars-mock {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 60px;
+      padding-top: 10px;
+    }
+
+    .vel-bar-col {
+      flex: 1;
+      background: #eff6ff;
+      border-radius: 4px;
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .vel-fill {
+      width: 100%;
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+
+    /* AI Coach Card */
+    .coach-pill-card {
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+      border-radius: 14px;
+      padding: 0.9rem;
+      font-size: 0.8rem;
+      color: #581c87;
+      line-height: 1.4;
+    }
+
+    .coach-pill-card strong {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #7e22ce;
+      margin-bottom: 0.3rem;
+      font-size: 0.85rem;
+    }
+
+    /* Bottom Section */
+    .bottom-cta-strip {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 1.8rem 2.2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+      box-shadow: 0 15px 35px rgba(30, 58, 138, 0.25);
+      margin-bottom: 2rem;
+    }
+
+    .bottom-quote {
+      font-size: 1.1rem;
+      font-style: italic;
+      font-weight: 500;
+      color: #dbeafe;
+      max-width: 580px;
+      line-height: 1.4;
+    }
+
+    .bottom-quote strong {
+      color: #ffffff;
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-color: #60a5fa;
+    }
+
+    .cta-btn-pill {
+      background: #ffffff;
+      color: #1e3a8a;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 0.8rem 1.8rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      transition: transform 0.2s;
+    }
+
+    .cta-btn-pill:hover {
+      transform: scale(1.03);
+    }
+
+    /* CREATORS & FOOTER */
+    .poster-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      gap: 1.5rem;
+    }
+
+    .creator-box {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .creator-avatar-badge {
+      width: 36px;
+      height: 36px;
+      background: #dbeafe;
+      color: #1e40af;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .creator-text {
+      font-size: 0.92rem;
+      color: #334155;
+    }
+
+    .creator-text strong {
+      color: #0f172a;
+      font-size: 1.05rem;
+    }
+
+    .workflow-tags {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .workflow-tags span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* GALLERY VIEW TAB (ACTUAL FULL SCREENSHOTS) */
+    .gallery-container {
+      display: none;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .gallery-container.active {
+      display: flex;
+    }
+
+    .gallery-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .gallery-card-header {
+      padding: 1.2rem 1.6rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+    }
+
+    .gallery-card-header h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .gallery-img {
+      width: 100%;
+      display: block;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .gallery-callout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      padding: 1.4rem 1.6rem;
+      background: #ffffff;
+    }
+
+    .callout-item {
+      font-size: 0.88rem;
+    }
+
+    .callout-item strong {
+      display: block;
+      color: #0f172a;
+      margin-bottom: 0.2rem;
+    }
+
+    .callout-item p {
+      color: var(--text-muted);
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+      }
+      .top-controls {
+        display: none !important;
+      }
+      .poster-canvas {
+        border: none !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        padding: 1.5cm !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+      }
+      .poster-canvas {
+        padding: 2rem 1.5rem;
+      }
+      .floating-safe-card {
+        position: static;
+        margin-top: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Navigation Bar -->
+  <header class="top-controls">
+    <div class="brand-group">
+      <div class="brand-icon">
+        <i data-lucide="wallet-cards" style="width: 20px; height: 20px;"></i>
+      </div>
+      <div class="brand-title">Campus<span>Coin</span> Poster</div>
+    </div>
+
+    <div class="nav-toggle-group">
+      <button class="nav-tab-btn active" id="tab-btn-poster" onclick="switchTab('poster')">
+        <i data-lucide="layout" style="width: 14px; height: 14px; vertical-align: -2px;"></i> Master Poster
+      </button>
+      <button class="nav-tab-btn" id="tab-btn-gallery" onclick="switchTab('gallery')">
+        <i data-lucide="image" style="width: 14px; height: 14px; vertical-align: -2px;"></i> Actual Screenshots
+      </button>
+    </div>
+
+    <button class="action-btn" onclick="window.print()">
+      <i data-lucide="printer" style="width: 16px; height: 16px;"></i>
+      <span>Print / Save as PDF</span>
+    </button>
+  </header>
+
+  <!-- ================= 1. MASTER POSTER VIEW ================= -->
+  <main class="poster-canvas" id="view-poster">
+
+    <!-- Top Branding & Tagline -->
+    <div class="poster-header">
+      <div class="header-left">
+        <div class="app-big-icon">
+          <i data-lucide="wallet-cards" style="width: 38px; height: 38px; color: white;"></i>
+        </div>
+        <div class="app-title-block">
+          <h1>CampusCoin <span class="gold-coin"></span></h1>
+          <p>Zero-Sum Student Personal Finance & Weekly Expense Engine</p>
+        </div>
+      </div>
+      <div class="header-tagline-handwritten">
+        Same Allowance.<br/>Smarter Spending.
+      </div>
+    </div>
+
+    <!-- Hero Problem / Solution Banner -->
+    <div class="hero-banner">
+      <h2>Broke by <span class="text-red">Wednesday?</span></h2>
+      <div class="hero-subtitle">Know your safe-to-spend, every single day.</div>
+      <p class="hero-desc">
+        Because monthly budgets fail by Day 10: Pacing college cash flow with zero-sum discipline, surprise anomaly absorption, and real-time safe-to-spend intelligence.
+      </p>
+    </div>
+
+    <!-- 3-Column Visual Layout (Real UI Elements) -->
+    <div class="showcase-grid">
+
+      <!-- Left Column: Feature Highlights -->
+      <div class="features-column">
+        <div class="feature-pill-card">
+          <div class="pill-icon-box icon-blue-bg">
+            <i data-lucide="coins" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div class="pill-content">
+            <h4>Zero-Sum Budget Engine</h4>
+            <p>Every rupee accounted for from Starting Cash. No leakage.</p>
+          </div>
+        </div>
+
+        <div class="feature-pill-card">
+          <div class="pill-icon-box icon-cyan-bg">
+            <i data-lucide="zap" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div class="pill-content">
+            <h4>Dynamic Safe Pacing</h4>
+            <p>Calculates daily allowance based on remaining days and cushion.</p>
+          </div>
+        </div>
+
+        <div class="feature-pill-card">
+          <div class="pill-icon-box icon-green-bg">
+            <i data-lucide="wallet" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div class="pill-content">
+            <h4>Live Cash & Inflows</h4>
+            <p>Real-time running wallet reflecting transfers, stipends & UPI.</p>
+          </div>
+        </div>
+
+        <div class="feature-pill-card">
+          <div class="pill-icon-box icon-purple-bg">
+            <i data-lucide="sparkles" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div class="pill-content">
+            <h4>Campus AI Coach</h4>
+            <p>Mess audits, weekend survival plans & student savings hacks.</p>
+          </div>
+        </div>
+
+        <div class="feature-pill-card">
+          <div class="pill-icon-box icon-amber-bg">
+            <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div class="pill-content">
+            <h4>Supabase RLS Security</h4>
+            <p>Private per-student PostgreSQL storage with instant cloud sync.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Column: Phone Mockup showing ACTUAL Website UI -->
+      <div class="center-mockup-wrapper">
+        <div class="device-phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <!-- Actual Screenshot of CampusCoin Weekly Planner -->
+            <img src="assets/screenshot_weekly.png" alt="CampusCoin Weekly Planner UI" class="screen-img" />
+          </div>
+        </div>
+
+        <!-- Floating Hero Safe-to-Spend Metric Card -->
+        <div class="floating-safe-card">
+          <div class="safe-card-header">
+            <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #2563eb;"></i>
+            <span>Safe to Spend Today</span>
+          </div>
+          <div class="safe-card-number">
+            <span>₹</span>2,073<small>/ day</small>
+          </div>
+          <div class="safe-card-sub">
+            <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+            <span>3 Days Left in Week • ₹6,220 Cash Pool Left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Real-UI Stats & Widgets -->
+      <div class="floating-cards-column">
+
+        <!-- Card 1: 24% / 76% Spending Split -->
+        <div class="stat-floating-card">
+          <div class="card-label-row">
+            <span>Spending Split</span>
+            <span style="color: #2563eb; font-weight: 700;">Zero-Sum</span>
+          </div>
+          <div class="donut-preview-box">
+            <div class="donut-circle">
+              <div class="donut-inner">24%</div>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-item"><span class="dot-blue"></span> Food (24%)</div>
+              <div class="legend-item"><span class="dot-green"></span> Necessities (76%)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Live Cash Balance Capsule -->
+        <div class="stat-floating-card capsule-live-box">
+          <div class="capsule-live-header">
+            <span class="live-dot"></span>
+            <span>LIVE CASH BALANCE</span>
+          </div>
+          <div class="capsule-val">₹8,720</div>
+          <div class="capsule-sub-inflows">
+            <span class="text-inflow-green">Inflows: +₹10,000</span>
+            <span class="text-outflow-red">Outflows: -₹1,280</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Velocity Bar Chart from Actual Analytics -->
+        <div class="stat-floating-card">
+          <div class="card-label-row">
+            <span>Daily Velocity (Sun - Sat)</span>
+            <i data-lucide="bar-chart-2" style="width: 16px; height: 16px; color: #3b82f6;"></i>
+          </div>
+          <div class="velocity-bars-mock">
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 90%;" title="Sun: ₹350"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 65%;" title="Mon: ₹240"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 85%;" title="Tue: ₹320"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 20%;" title="Wed: ₹70"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 0%;" title="Thu"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 0%;" title="Fri"></div></div>
+            <div class="vel-bar-col"><div class="vel-fill" style="height: 0%;" title="Sat"></div></div>
+          </div>
+        </div>
+
+        <!-- Card 4: Campus AI Advisor Alert -->
+        <div class="coach-pill-card">
+          <strong>
+            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+            Campus AI Coach
+          </strong>
+          "Weekend spend is 18% higher than usual. Pacing active to maintain ₹2,073/day surplus."
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Bottom Quote & CTA Banner -->
+    <div class="bottom-cta-strip">
+      <div class="bottom-quote">
+        “Smart budgeting isn't restricting your spends; it's <strong>pacing your cash</strong> so you never go broke before the weekend.”
+      </div>
+      <a href="index.html" class="cta-btn-pill">
+        <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #2563eb;"></i>
+        <span>Take Control of Your College Cash</span>
+      </a>
+    </div>
+
+    <!-- Footer with Creators Credit -->
+    <footer class="poster-footer">
+      <div class="creator-box">
+        <div class="creator-avatar-badge">🎓</div>
+        <div class="creator-text">
+          Designed & Engineered by <strong>Sanjali & Priyanshu</strong>
+        </div>
+      </div>
+
+      <div class="workflow-tags">
+        <span><i data-lucide="zap" style="width: 15px; height: 15px; color: #2563eb;"></i> Plan</span>
+        <span><i data-lucide="check-circle" style="width: 15px; height: 15px; color: #10b981;"></i> Track</span>
+        <span><i data-lucide="piggy-bank" style="width: 15px; height: 15px; color: #f59e0b;"></i> Save</span>
+        <span><i data-lucide="trending-up" style="width: 15px; height: 15px; color: #8b5cf6;"></i> Grow</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- ================= 2. ACTUAL SCREENSHOTS GALLERY VIEW ================= -->
+  <div class="poster-canvas gallery-container" id="view-gallery">
+    
+    <div class="gallery-card">
+      <div class="gallery-card-header">
+        <h3>1. Weekly Expense Planner & Safe Pacing Engine</h3>
+        <span style="font-size: 0.85rem; color: #2563eb; font-weight: 700;">Live Production Screenshot</span>
+      </div>
+      <img src="assets/screenshot_weekly.png" alt="Weekly Planner Screenshot" class="gallery-img" />
+      <div class="callout-grid gallery-callout-grid">
+        <div class="callout-item">
+          <strong>Starting Cash Foundation</strong>
+          <p>₹7,500 initial cash pool auto-divided into 24% Food and 76% Necessities.</p>
+        </div>
+        <div class="callout-item">
+          <strong>Safe-to-Spend Metric</strong>
+          <p>Displays ₹2,073/day live allowance with remaining 3 days pacing.</p>
+        </div>
+        <div class="callout-item">
+          <strong>Live Balance Capsule</strong>
+          <p>₹8,720 real-time wallet balance (+₹10,000 inflows, -₹1,280 spent).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gallery-card">
+      <div class="gallery-card-header">
+        <h3>2. Monthly Book & Macro Aggregation</h3>
+        <span style="font-size: 0.85rem; color: #10b981; font-weight: 700;">4-Week Macro Ledger</span>
+      </div>
+      <img src="assets/screenshot_monthly.png" alt="Monthly Book Screenshot" class="gallery-img" />
+      <div class="callout-grid gallery-callout-grid">
+        <div class="callout-item">
+          <strong>Net Savings Velocity</strong>
+          <p>+₹28,720 Net Savings (95.7% savings rate) auto-calculated across weeks.</p>
+        </div>
+        <div class="callout-item">
+          <strong>Surprise Anomaly Absorption</strong>
+          <p>₹300 in unexpected college emergencies absorbed safely without breaking pool.</p>
+        </div>
+        <div class="callout-item">
+          <strong>Automated Statements</strong>
+          <p>1-click export to multi-page PDF statements and CSV spreadsheets.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gallery-card">
+      <div class="gallery-card-header">
+        <h3>3. Velocity Analytics & Category Targets</h3>
+        <span style="font-size: 0.85rem; color: #8b5cf6; font-weight: 700;">Chart.js Visualization</span>
+      </div>
+      <img src="assets/screenshot_analytics.png" alt="Analytics Charts Screenshot" class="gallery-img" />
+      <div class="callout-grid gallery-callout-grid">
+        <div class="callout-item">
+          <strong>Daily Velocity (Mon - Sun)</strong>
+          <p>Visual bar spikes track Monday–Wednesday hostel canteen trends.</p>
+        </div>
+        <div class="callout-item">
+          <strong>Budget vs. Actual Spent</strong>
+          <p>Instant comparison of allocated targets against real student outlays.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function switchTab(tab) {
+      const posterView = document.getElementById('view-poster');
+      const galleryView = document.getElementById('view-gallery');
+      const posterBtn = document.getElementById('tab-btn-poster');
+      const galleryBtn = document.getElementById('tab-btn-gallery');
+
+      if (tab === 'poster') {
+        posterView.style.display = 'block';
+        galleryView.classList.remove('active');
+        posterBtn.classList.add('active');
+        galleryBtn.classList.remove('active');
+      } else {
+        posterView.style.display = 'none';
+        galleryView.classList.add('active');
+        posterBtn.classList.remove('active');
+        galleryBtn.classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>
